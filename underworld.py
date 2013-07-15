@@ -20,7 +20,7 @@ class Unbuffered:
 
 class Player:
     def __init__(self, exeName):
-        self.process = subprocess.Popen(exeName, stdin=PIPE, stdout=PIPE)
+        self.process = subprocess.Popen([exeName], stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
         self.thread = threading.Thread(target=self.playerLoop)
         self.lock = threading.RLock()
         self.state = PlayerState.NOT_INITIATED
@@ -29,8 +29,8 @@ class Player:
         self.messageToPlayer = ""
 
     def playerLoop(self):
-        self.process.stdout.write(b"Who are you?\n")
-        answer = self.process.stdin.readline()
+        self.process.stdin.write(b"Who are you?\n")
+        answer = self.process.stdout.readline()
         self.lock.acquire()
         self.state = PlayerState.PLAYING if answer == "crayfish" else PlayerState.KICKED
         self.lock.release()
@@ -41,9 +41,9 @@ class Player:
             messageToPlayer = self.messageToPlayer
             self.lock.release()
             if self.messageToPlayer:
-                self.process.stdout.write(self.messageToPlayer)
+                self.process.stdin.write(self.messageToPlayer)
                 self.messageToPlayer = ""
-            newCommand = self.process.stdin.readline()
+            newCommand = self.process.stdout.readline()
             self.lock.acquire()
             if newCommand == "end":
                 self.state = PlayerState.READY
@@ -56,7 +56,7 @@ class Player:
 
     def kick(self):
         self.lock.acquire()
-        self.state = KICKED
+        self.state = PlayerState.KICKED
         self.lock.release()
 
 
@@ -74,7 +74,7 @@ def main():
         somePlayersThinking = False
         for player in playerList:
             player.lock.acquire()
-            somePlayersThinking |= (p.state == PlayerState.THINKING)
+            somePlayersThinking |= (player.state == PlayerState.THINKING)
             player.lock.release()
 
         if not somePlayersThinking or time.time() > turnEndTime:

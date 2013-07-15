@@ -7,4 +7,4 @@ class PlayerState:
     KICKED = 6
 
     def inPlay(state):
-        return state in [THINKING, READY]
+        return state in [PlayerState.THINKING, PlayerState.READY]
