@@ -1,4 +1,5 @@
 import sys
+import random
 whoareyou = sys.stdin.readline()
 print("crayfish")
 sys.stdout.flush()
@@ -7,6 +8,8 @@ while True:
 	s = sys.stdin.readline( )
 	increment = int(s.strip())
 	number += increment
+	if random.randint(1,100) == 42:
+		number += 1
 	print(number)
 	print("end")
 	sys.stdout.flush()

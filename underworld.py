@@ -9,13 +9,16 @@ import gameengine
 
 
 class Unbuffered:
-   def __init__(self, stream):
-       self.stream = stream
-   def write(self, data):
-       self.stream.write(data)
-       self.stream.flush()
-   def __getattr__(self, attr):
-       return getattr(self.stream, attr)
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        try:
+            self.stream.write(data)
+            self.stream.flush()
+        except:
+            pass
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
 
 
 class MutexLocker:
@@ -40,11 +43,11 @@ class Player:
         return self._state
 
     @state.setter
-    @log_function
     def state(self, value):
-        #if PlayerState.isFinal(self._state):
-            #raise ValueError("Trying to reassign final state")
+        assert(not PlayerState.isFinal(self._state) or self._state == value)
         if PlayerState.isFinal(value):
+            if self._state != value:
+                print("Player ", self.iPlayer + 1, " reaches his destiny: ", value)
             self.process.kill()
         self._state = value
 
@@ -54,15 +57,15 @@ class Player:
         self.lock = threading.RLock()
         self._state = PlayerState.NOT_INITIATED
         self.iPlayer = iPlayer
-        self.process.stdout = Unbuffered(self.process.stdout)
-        self.messageFromPlayer = b""
+        self.process.stdin = Unbuffered(self.process.stdin)
         self.messageToPlayer = b""
+        self.messageFromPlayer = b""
     def handshake(self):
         self.process.stdin.write(b"Who are you?\n")
         answer = self.process.stdout.readline().strip()
         with MutexLocker(self.lock):
             if self.state == PlayerState.NOT_INITIATED:
-                self.state = PlayerState.READY if answer == b"crayfish" else PlayerState.KICKED
+                self.state = PlayerState.THINKING if answer == b"crayfish" else PlayerState.KICKED
     def playerLoop(self):
         self.handshake()
         while True:
@@ -70,12 +73,17 @@ class Player:
                 if not PlayerState.inPlay(self.state):
                     break
                 messageToPlayer = self.messageToPlayer
-            if  self.messageToPlayer:
+            if self.messageToPlayer:
                 self.process.stdin.write(self.messageToPlayer)
                 self.messageToPlayer = b""
-            newCommand = self.process.stdout.readline().strip()
-            with MutexLocker(self.lock):
-                self.messageFromPlayer += newCommand
+            if self.state != PlayerState.READY:
+                newCommand = self.process.stdout.readline().strip()
+                with MutexLocker(self.lock):
+                    if newCommand == b"end":
+                        self.state = PlayerState.READY
+                    else:
+                        self.messageFromPlayer += newCommand
+            time.sleep(config.mainLoopIterationDelay)
 
     def run(self):
         self.thread.start()
@@ -95,44 +103,42 @@ def main():
     for (playerExeFile, iPlayer) in zip(playerNames, range(playerNum)):
         playerList.append(Player(playerExeFile, iPlayer))
     game.setPlayers(playerList)
-    print("1")
-    for player in playerList:
+    initialMessages = game.initialMessages()
+    for (player, message) in zip(playerList, initialMessages):
+        with MutexLocker(player.lock):
+            player.messageToPlayer += bytearray(message, "utf-8")
         player.run()
-    print("2")
 
     turnEndTime = time.time() + config.turnDurationInSec
     while True:
-        #print("time = ", time.time(), ", ", turnEndTime)
         somePlayersThinking = False
         for player in playerList:
             with MutexLocker(player.lock):
                 somePlayersThinking |= (player.state in [PlayerState.THINKING, PlayerState.NOT_INITIATED])
         if not somePlayersThinking or time.time() > turnEndTime:
+            print("Let the turn ", game.turn, " end!")
             playerMoves = []
             for player in playerList:
                 with MutexLocker(player.lock):
-                    if player.state != PlayerState.READY:
+                    if player.state == PlayerState.THINKING:
                         player.kick()
                         playerMoves.append(None)
                     else:
-                        playerMoves.append(player.messageFromPlayer)
-            print(4)
+                        playerMoves.append(player.messageFromPlayer.decode("utf-8"))
+                        player.messageFromPlayer = b""
             engineReply = game.processTurn(playerMoves)
             for (player, reply) in zip(playerList, engineReply):
                 with MutexLocker(player.lock):
                     player.state = reply[0]
-                    player.messageToPlayer += reply[1]
+                    player.messageToPlayer += bytearray(reply[1], "utf-8")
 
-            print(5)
             somebodyStillPlays = False
             for player in playerList:
                 with MutexLocker(player.lock):
                     somebodyStillPlays |= PlayerState.inPlay(player.state)
-            print(6)
             if not somebodyStillPlays:
                 print("Game over!")
                 return
-            print(7)
             turnEndTime = time.time() + config.turnDurationInSec
 
         time.sleep(config.mainLoopIterationDelay)
