@@ -1,0 +1,1 @@
+turnDurationInSec = 1
