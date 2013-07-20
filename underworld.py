@@ -2,13 +2,13 @@ import sys
 import time
 import subprocess
 import threading
-
-from playerstate import PlayerState
 import config
 import gameengine
+import playerstate as PlayerState
 
 
 class Unbuffered:
+    ''' Unbuffered output wrapper '''
     def __init__(self, stream):
         self.stream = stream
     def write(self, data):
@@ -22,6 +22,7 @@ class Unbuffered:
 
 
 class MutexLocker:
+    ''' Simple mutex lock object '''
     def __init__(self, mutex):
         self.mutex = mutex
     def __enter__(self):
@@ -31,6 +32,7 @@ class MutexLocker:
         self.mutex.release()
 
 def log_function(f):
+    ''' A decorator to log general function calls '''
     def decorator(*args, **kwargs):
         print(f.__name__, " ", args, ", ", kwargs)
         return f(*args, **kwargs)
@@ -38,12 +40,15 @@ def log_function(f):
 
 
 class Player:
+    ''' Represents the Player object in both underworld server and game engine '''
     @property
     def state(self):
+        ''' state property setter ''' 
         return self._state
 
     @state.setter
     def state(self, value):
+        ''' state property getter ''' 
         assert(not PlayerState.isFinal(self._state) or self._state == value)
         if PlayerState.isFinal(value):
             if self._state != value:
@@ -52,6 +57,11 @@ class Player:
         self._state = value
 
     def __init__(self, exeName, iPlayer):
+        ''' Initialize a player 
+                Args:
+                    exeName - the executable name ( should not spawn new processes )
+                    iPlayer - player's unique ID
+        '''
         self.process = subprocess.Popen(exeName.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         self.thread = threading.Thread(target=self.playerLoop)
         self.lock = threading.RLock()
@@ -61,12 +71,16 @@ class Player:
         self.messageToPlayer = b""
         self.messageFromPlayer = b""
     def handshake(self):
-        self.process.stdin.write(b"Who are you?\n")
+        ''' Perform handshake. If it fails, kick the player '''
+        self.process.stdin.write(config.handshakeSyn + b"\n")
         answer = self.process.stdout.readline().strip()
         with MutexLocker(self.lock):
             if self.state == PlayerState.NOT_INITIATED:
-                self.state = PlayerState.THINKING if answer == b"crayfish" else PlayerState.KICKED
+                self.state = PlayerState.THINKING if answer == config.handshakeAck else PlayerState.KICKED
     def playerLoop(self):
+        ''' Player's thread main function.
+            Handshakes, then repeatedly performs the IO while player is in play.
+        '''
         self.handshake()
         while True:
             with MutexLocker(self.lock):
@@ -77,21 +91,24 @@ class Player:
                 self.process.stdin.write(self.messageToPlayer)
                 self.messageToPlayer = b""
             if self.state != PlayerState.READY:
-                newCommand = self.process.stdout.readline().strip()
+                newCommand = self.process.stdout.readline()
                 with MutexLocker(self.lock):
-                    if newCommand == b"end":
+                    if newCommand.strip() == b"end":
                         self.state = PlayerState.READY
                     else:
                         self.messageFromPlayer += newCommand
             time.sleep(config.mainLoopIterationDelay)
 
     def run(self):
+        ''' Start player's IO '''
         self.thread.start()
 
     def kick(self):
+        ''' Kick the player '''
         with MutexLocker(self.lock):
             self.state = PlayerState.KICKED
     def __repr__(self):
+        ''' String representation - just the player's id '''
         return str(self.iPlayer + 1)
 
 def main():

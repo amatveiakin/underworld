@@ -1,4 +1,4 @@
-from playerstate import PlayerState
+import playerstate as PlayerState
 from random import randint
 import functools
 
