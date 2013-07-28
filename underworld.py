@@ -39,8 +39,8 @@ def log_function(f):
     return decorator
 
 
-class Player:
-    ''' Represents the Player object in both underworld server and game engine '''
+class Client:
+    ''' Represents the Player object in underworld server '''
     @property
     def state(self):
         ''' state property setter ''' 
@@ -118,7 +118,7 @@ def main():
     playerNames = sys.argv[1:]
     playerNum = len(playerNames)
     for (playerExeFile, iPlayer) in zip(playerNames, range(playerNum)):
-        playerList.append(Player(playerExeFile, iPlayer))
+        playerList.append(Client(playerExeFile, iPlayer))
     game.setPlayers(playerList)
     initialMessages = game.initialMessages()
     for (player, message) in zip(playerList, initialMessages):
