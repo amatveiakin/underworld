@@ -87,9 +87,9 @@ class Client:
                 if not PlayerState.inPlay(self.state):
                     break
                 messageToPlayer = self.messageToPlayer
-            if self.messageToPlayer:
-                self.process.stdin.write(self.messageToPlayer)
                 self.messageToPlayer = b""
+            if messageToPlayer:
+                self.process.stdin.write(messageToPlayer)
             if self.state != PlayerState.READY:
                 newCommand = self.process.stdout.readline()
                 with MutexLocker(self.lock):
@@ -119,7 +119,7 @@ def main():
     playerNum = len(playerNames)
     for (playerExeFile, iPlayer) in zip(playerNames, range(playerNum)):
         playerList.append(Client(playerExeFile, iPlayer))
-    game.setPlayers(playerList)
+    game.setClients(playerList)
     initialMessages = game.initialMessages()
     for (player, message) in zip(playerList, initialMessages):
         with MutexLocker(player.lock):
@@ -143,12 +143,6 @@ def main():
                     else:
                         playerMoves.append(player.messageFromPlayer.decode("utf-8"))
                         player.messageFromPlayer = b""
-            engineReply = game.processTurn(playerMoves)
-            for (player, reply) in zip(playerList, engineReply):
-                with MutexLocker(player.lock):
-                    player.state = reply[0]
-                    player.messageToPlayer += bytearray(reply[1], "utf-8")
-
             somebodyStillPlays = False
             for player in playerList:
                 with MutexLocker(player.lock):
@@ -156,6 +150,13 @@ def main():
             if not somebodyStillPlays:
                 print("Game over!")
                 return
+
+            engineReply = game.processTurn(playerMoves)
+            for (player, reply) in zip(playerList, engineReply):
+                with MutexLocker(player.lock):
+                    player.state = reply[0]
+                    player.messageToPlayer += bytearray(reply[1], "utf-8")
+
             turnEndTime = time.time() + config.turnDurationInSec
 
         time.sleep(config.mainLoopIterationDelay)

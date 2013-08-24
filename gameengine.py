@@ -24,37 +24,51 @@ import functools
 
 
 class Game:
-    SizeX = 100
-    SizeY = 50
-    class Object:
+    SizeX = 5
+    SizeY = 5
+    class Cell:
+        def __init__(self):
+            self.moveCandidates = []
+            self.buildCandidates = []
+            
+    class Object(Cell):
         VisionRange = 3
         CanBeBuilt = True
         def __init__(self):
+            super().__init__()
             self.hitpoints = self.MaxHitpoints
+            self.newPosition = None
+            self.willMove = None
 
     class Building (Object):
         CanMove = False
         CanAttack = False
-        pass
+
     class Castle (Building):
         MaxHitpoints = 10000
         CanBeBuilt = False
+        CharRepr  = "C"
+
     class Farm (Building):
         MaxHitpoints = 1000
         Cost = 1000
+        CharRepr  = "F"
+
     class Barracks (Building):
         MaxHitpoints = 1500
         Cost = 1500
+        CharRepr = "B"
 
     class Unit (Object):
         CanMove = True
         CanAttack = True
-        pass
+
     class Warrior (Unit):
         MaxHitpoints = 500
         DamageToBuilding = 100
         DamageToUnits = 100
         Cost = 500
+        CharRepr = "W"
 
     class Player:
         InitialMoney = 3000
@@ -63,27 +77,216 @@ class Game:
 
     def __init__(self):
         pass
+    def initFooGame1(self):
+        self.field[0][0] = Game.Castle()
+        self.field[0][0].owner = 0
+        self.field[self.SizeY - 1][self.SizeX - 1] = Game.Castle()
+        self.field[self.SizeY - 1][self.SizeX - 1].owner = 1
+        if self.nPlayers == 4:
+            self.field[0][self.SizeX - 1] = Game.Castle()
+            self.field[0][self.SizeX - 1].owner = 2
+            self.field[self.SizeY - 1][0] = Game.Castle()
+            self.field[self.SizeY - 1][0].owner = 3
+    def initFooGame2(self):
+        self.field[0][0] = Game.Warrior()
+        self.field[0][0].owner = 0
+
+        #self.field[0][2] = Game.Warrior()
+        #self.field[0][2].owner = 0
+
+        self.field[self.SizeY - 1][self.SizeX - 1] = Game.Warrior()
+        self.field[self.SizeY - 1][self.SizeX - 1].owner = 1
+        if self.nPlayers == 4:
+            self.field[0][self.SizeX - 1] = Game.Warrior()
+            self.field[0][self.SizeX - 1].owner = 2
+            self.field[self.SizeY - 1][0] = Game.Warrior()
+            self.field[self.SizeY - 1][0].owner = 3
     def setClients(self, clients):
-        nPlayers = len(clients)
-        assert(self.isPlayerNumAcceptable(nPlayers))
+        ''' initializes the game with specified list of clients '''
+        self.nPlayers = len(clients)
+        assert(self.isPlayerNumAcceptable(self.nPlayers))
         self.clients = clients
         self.field = []
         for y in range(self.SizeY):
-            field.append([None] * self.SizeX)
-        field[0][0] = Castle()
-        field[0][0].owner = 0
-        field[SizeY - 1][SizeX - 1] = Castle()
-        field[SizeY - 1][SizeX - 1].owner = 1
-        if nPlayers == 4:
-            field[0][SizeX - 1] = Castle()
-            field[0][SizeX - 1].owner = 2
-            field[SizeY - 1][0] = Castle()
-            field[SizeY - 1][0].owner = 3
+            self.field.append([None] * self.SizeX)
+        self.initFooGame2( )
+        self.turn = 0
 
     def processTurn(self, playerMoves):
-        pass
+        ''' 
+            Process inputs from all clients.
+            playerMoves is a list with nPlayers items, each of which is a string with a player's move 
+            returns list of nPlayers tuples (new playerState, message to player)
+        '''
+        for iPlayer in range(self.nPlayers):
+            linesFromPlayer = playerMoves[iPlayer].strip( ).split("\n")
+            try:
+                for line in linesFromPlayer:
+                    words = line.split( )
+                    x = int(words[1])
+                    y = int(words[2])
+                    cell = self.field[y][x]
+                    if words[0] == "move":
+                        if cell.owner != iPlayer or not cell.CanMove:
+                            raise Exception( )
+                        direction = words[3]
+                        (newx, newy) = Game._applyDirection(x, y, direction)
+                        if self._isInside(newx, newy):
+                            self._setMoveRequest(x, y, newx, newy)
+                    elif words[0] == "build":
+                        pass
+                    elif words[0] == "spawn":
+                        pass
+                    else:
+                        raise Exception( )
+            except:
+                #TODO: handle this case
+                raise Exception("Player %d made a incorrect move." %  iPlayer)
+        self._resolveMovement( )
+        self._cleanup( )
+        self.turn += 1
+        res = []
+        for iPlayer in range(self.nPlayers):
+            res.append((PlayerState.THINKING, self.getPlayerInfoString(iPlayer) + "end\n"))
+        self.dumpField()
+        return res
     def initialMessages(self):
-        #json.dumps({key: val for (key, val) in dict(A.__dict__).items( ) if key[:2]!='__'})  # TODO
-        pass
+        '''
+            Returs the list of nPlayers initial messages to players
+        '''
+        res = []
+        for iPlayer in range(self.nPlayers):
+            res.append(("%d %d %d %d" % (self.SizeX, self.SizeY, self.nPlayers, iPlayer)) + \
+                "\n" + self.getPlayerInfoString(iPlayer) + "end\n")
+        return res
+            
     def isPlayerNumAcceptable(self, nPlayers):
         return nPlayers in [2, 4]
+    def getPlayerInfoString(self, iPlayer):
+        '''
+            The string representing all objects visible to the player iPlayer
+            in the format below:
+                x y owner type hitpoints
+        '''
+        msg = []
+        for y in range(self.SizeY):
+            for x in range(self.SizeX):
+                if isinstance(self.field[y][x], Game.Object):
+                    msg.append(self._compose_cell_info(x, y))
+        return "\n".join(msg) + "\n"
+    def _compose_cell_info(self, x, y):
+        '''
+            Returns a string representing info about a cell @(x, y)
+        '''
+        cell = self.field[y][x]
+        return "%d %d %d %s %d" % (x, y, cell.owner, cell.CharRepr, cell.hitpoints)
+    def _applyDirection(x, y, direction):
+        '''
+            Utility function. 
+            Returns where (x,y) would be if it went by direction in form of a  tuple.
+        '''
+        newx = x
+        newy = y
+        if direction == 'N':
+            newy = y - 1
+        elif direction == 'S':
+            newy = y + 1
+        elif direction == 'W':
+            newx = x - 1
+        elif direction == 'E':
+            newx = x + 1
+        return (newx, newy)
+    def _isInside(self, x, y):
+        ''' 
+            Utility function.
+            Returns true iff (x,y) is inside the board
+        '''
+        return x >= 0 and x <= self.SizeX and y >= 0 and y <= self.SizeY
+    def _setMoveRequest(self, x, y, newx, newy):
+        ''' 
+            Define that the object @(x,y) wants to move to (newx, newy)
+            Stay calm: the object isn't moving anywhere yet.
+        '''
+        self.field[y][x].newPosition = (newx, newy)
+
+        if self.field[newy][newx] is None:
+            self.field[newy][newx] = Game.Cell( )
+        self.field[newy][newx].moveCandidates.append((x,y))
+        
+    def _cleanup(self):
+        '''
+            Cleans up intermediate turn info about battles, movements, etc.
+            Call each time a turn ends.
+        '''
+        for y in range(self.SizeY):
+            for x in range(self.SizeX):
+                cell = self.field[y][x]
+                if not (cell is None):
+                    cell.moveCandidates = []
+                    cell.buildCandidates = []
+                    if isinstance(cell, Game.Object):
+                        cell.newPosition = None
+                        cell.willMove = None
+    def _resolveMovement(self):
+        def passable(startx, starty):
+            def passableRec(x, y, check=True):
+                cell = self.field[y][x]
+                if check and (x, y) == (startx, starty):
+                    return True
+                if len(cell.moveCandidates) >= 2:
+                    return False
+                if not isinstance(cell, Game.Object):
+                    return True
+                if not (cell.willMove is None):
+                    return cell.willMove
+                if cell.newPosition is None:
+                    return False
+                newx, newy = cell.newPosition
+                if passableRec(newx, newy):
+                    cell.willMove = True
+                    return True
+                else:
+                    cell.willMove = False
+                    return False
+            return passableRec(startx, starty, False)
+        def pushRec(x, y):
+            cell = self.field[y][x]
+            if isinstance(cell, Game.Object):
+                (newx, newy) = cell.newPosition
+                pushRec(newx, newy)
+                self.field[newy][newx] = cell
+                self.filed[y][x] = None
+                
+        # first determine simple -><- collisions
+        for y in range(self.SizeY):
+            for x in range(self.SizeX):
+                cell = self.field[y][x]
+                if isinstance(cell, Game.Object) and cell.newPosition:
+                    newCell = self.field[cell.newPosition[1]][cell.newPosition[0]]
+                    if isinstance(newCell, Game.Object) and newCell.newPosition and \
+                        newCell.newPosition == (x, y):
+                        cell.willMove = False
+        # now resolve everything else, including cyclic rotation
+        for y in range(self.SizeY):
+            for x in range(self.SizeX):
+                cell = self.field[y][x]
+                if isinstance(cell, Game.Object) and cell.newPosition:
+                    (newx, newy) = cell.newPosition
+                    if cell.willMove is None:
+                        cell.willMove = passable(newx, newy)
+                    if cell.willMove is True:
+                        self.field[y][x] = None
+                        pushRec(x, y)
+                        self.field[newy][newx] = cell
+
+    def dumpField(self):
+        res = ""
+        for y in range(self.SizeY):
+            for x in range(self.SizeX):
+                cell = self.field[y][x]
+                if isinstance(cell, Game.Object):
+                    res += cell.CharRepr
+                else:
+                    res += " "
+            res += "\n"
+        print (res)
