@@ -18,97 +18,25 @@
 #  spawn x(int) y(int) dir(dir)
 #  build x(int) y(int) object(object)
 
-
 import playerstate as PlayerState
-import functools
-
 
 class Game:
-    SizeX = 5
-    SizeY = 5
-    class Cell:
-        def __init__(self):
-            self.moveCandidates = []
-            self.buildCandidates = []
-            
-    class Object(Cell):
-        VisionRange = 3
-        CanBeBuilt = True
-        def __init__(self):
-            super().__init__()
-            self.hitpoints = self.MaxHitpoints
-            self.newPosition = None
-            self.willMove = None
-
-    class Building (Object):
-        CanMove = False
-        CanAttack = False
-
-    class Castle (Building):
-        MaxHitpoints = 10000
-        CanBeBuilt = False
-        CharRepr  = "C"
-
-    class Farm (Building):
-        MaxHitpoints = 1000
-        Cost = 1000
-        CharRepr  = "F"
-
-    class Barracks (Building):
-        MaxHitpoints = 1500
-        Cost = 1500
-        CharRepr = "B"
-
-    class Unit (Object):
-        CanMove = True
-        CanAttack = True
-
-    class Warrior (Unit):
-        MaxHitpoints = 500
-        DamageToBuilding = 100
-        DamageToUnits = 100
-        Cost = 500
-        CharRepr = "W"
-
+    from .celldefs import Cell, Object, Building, Castle, Farm, Barracks, Unit, Warrior
+    from .initgame import initFooGame1, initFooGame2
     class Player:
         InitialMoney = 3000
         def __init__(self):
             self.money = InitialMoney
 
     def __init__(self):
+        self.onTurnEnd = None 
         pass
-    def initFooGame1(self):
-        self.field[0][0] = Game.Castle()
-        self.field[0][0].owner = 0
-        self.field[self.SizeY - 1][self.SizeX - 1] = Game.Castle()
-        self.field[self.SizeY - 1][self.SizeX - 1].owner = 1
-        if self.nPlayers == 4:
-            self.field[0][self.SizeX - 1] = Game.Castle()
-            self.field[0][self.SizeX - 1].owner = 2
-            self.field[self.SizeY - 1][0] = Game.Castle()
-            self.field[self.SizeY - 1][0].owner = 3
-    def initFooGame2(self):
-        self.field[0][0] = Game.Warrior()
-        self.field[0][0].owner = 0
 
-        #self.field[0][2] = Game.Warrior()
-        #self.field[0][2].owner = 0
-
-        self.field[self.SizeY - 1][self.SizeX - 1] = Game.Warrior()
-        self.field[self.SizeY - 1][self.SizeX - 1].owner = 1
-        if self.nPlayers == 4:
-            self.field[0][self.SizeX - 1] = Game.Warrior()
-            self.field[0][self.SizeX - 1].owner = 2
-            self.field[self.SizeY - 1][0] = Game.Warrior()
-            self.field[self.SizeY - 1][0].owner = 3
     def setClients(self, clients):
         ''' initializes the game with specified list of clients '''
         self.nPlayers = len(clients)
         assert(self.isPlayerNumAcceptable(self.nPlayers))
         self.clients = clients
-        self.field = []
-        for y in range(self.SizeY):
-            self.field.append([None] * self.SizeX)
         self.initFooGame2( )
         self.turn = 0
 
@@ -120,8 +48,8 @@ class Game:
         '''
         for iPlayer in range(self.nPlayers):
             linesFromPlayer = playerMoves[iPlayer].strip( ).split("\n")
-            try:
-                for line in linesFromPlayer:
+            for line in linesFromPlayer:
+                try:
                     words = line.split( )
                     x = int(words[1])
                     y = int(words[2])
@@ -139,15 +67,18 @@ class Game:
                         pass
                     else:
                         raise Exception( )
-            except:
-                #TODO: handle this case
-                raise Exception("Player %d made a incorrect move." %  iPlayer)
+                except:
+                    # just ignore incorrect moves
+                    pass
+                
         self._resolveMovement( )
         self._cleanup( )
         self.turn += 1
         res = []
         for iPlayer in range(self.nPlayers):
             res.append((PlayerState.THINKING, self.getPlayerInfoString(iPlayer) + "end\n"))
+        if callable(self.onTurnEnd):
+            self.onTurnEnd( )
         self.dumpField()
         return res
     def initialMessages(self):
