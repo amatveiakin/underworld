@@ -64,6 +64,7 @@ class Client:
         '''
         self.process = subprocess.Popen(exeName.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         self.thread = threading.Thread(target=self.playerLoop)
+        self.thread.setDaemon(True)
         self.lock = threading.RLock()
         self._state = PlayerState.NOT_INITIATED
         self.iPlayer = iPlayer
@@ -160,7 +161,6 @@ def main():
             turnEndTime = time.time() + config.turnDurationInSec
 
         time.sleep(config.mainLoopIterationDelay)
-
 
 if __name__ == "__main__":
     main()
