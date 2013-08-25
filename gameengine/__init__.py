@@ -47,6 +47,8 @@ class Game:
             returns list of nPlayers tuples (new playerState, message to player)
         '''
         for iPlayer in range(self.nPlayers):
+            if not PlayerState.inPlay(self.clients[iPlayer].state):
+                continue
             linesFromPlayer = playerMoves[iPlayer].strip( ).split("\n")
             for line in linesFromPlayer:
                 try:
@@ -78,8 +80,11 @@ class Game:
         for iPlayer in range(self.nPlayers):
             res.append((PlayerState.THINKING, self.getPlayerInfoString(iPlayer) + "end\n"))
         if callable(self.onTurnEnd):
-            self.onTurnEnd( )
-        self.dumpField()
+            try:
+                self.onTurnEnd( )
+            except: 
+                # kick everyone: the interactive UI is dead
+                res = [ (PlayerState.KICKED, "" ) ] * self.nPlayers
         return res
     def initialMessages(self):
         '''
@@ -132,7 +137,7 @@ class Game:
             Utility function.
             Returns true iff (x,y) is inside the board
         '''
-        return x >= 0 and x <= self.SizeX and y >= 0 and y <= self.SizeY
+        return x >= 0 and x < self.SizeX and y >= 0 and y < self.SizeY
     def _setMoveRequest(self, x, y, newx, newy):
         ''' 
             Define that the object @(x,y) wants to move to (newx, newy)
@@ -159,10 +164,15 @@ class Game:
                         cell.newPosition = None
                         cell.willMove = None
     def _resolveMovement(self):
+        '''
+            Performs collisions resolution and does actual moving of units
+        '''
         def passable(startx, starty):
             def passableRec(x, y, check=True):
                 cell = self.field[y][x]
                 if check and (x, y) == (startx, starty):
+                    return True
+                if cell is None:
                     return True
                 if len(cell.moveCandidates) >= 2:
                     return False
@@ -186,7 +196,7 @@ class Game:
                 (newx, newy) = cell.newPosition
                 pushRec(newx, newy)
                 self.field[newy][newx] = cell
-                self.filed[y][x] = None
+                self.field[y][x] = None
                 
         # first determine simple -><- collisions
         for y in range(self.SizeY):
@@ -205,19 +215,7 @@ class Game:
                     (newx, newy) = cell.newPosition
                     if cell.willMove is None:
                         cell.willMove = passable(newx, newy)
-                    if cell.willMove is True:
+                    if (cell.willMove is True) and (cell.newPosition != (x, y)):
                         self.field[y][x] = None
-                        pushRec(x, y)
+                        pushRec(newx, newy)
                         self.field[newy][newx] = cell
-
-    def dumpField(self):
-        res = ""
-        for y in range(self.SizeY):
-            for x in range(self.SizeX):
-                cell = self.field[y][x]
-                if isinstance(cell, Game.Object):
-                    res += cell.CharRepr
-                else:
-                    res += " "
-            res += "\n"
-        print (res)
