@@ -39,6 +39,15 @@ class Game:
         self.clients = clients
         self.initFooGame2( )
         self.turn = 0
+        self.objects = set()
+        for y in range(self.SizeY):
+            for x in range(self.SizeX):
+                if isinstance(self.field[y][x], Game.Object):
+                    self.field[y][x].x = x
+                    self.field[y][x].y = y
+                    self.objects.add(self.field[y][x])
+        self._cellsToCleanup = set()
+
 
     def processTurn(self, playerMoves):
         ''' 
@@ -105,17 +114,14 @@ class Game:
                 x y owner type hitpoints
         '''
         msg = []
-        for y in range(self.SizeY):
-            for x in range(self.SizeX):
-                if isinstance(self.field[y][x], Game.Object):
-                    msg.append(self._compose_cell_info(x, y))
+        for obj in self.objects:
+            msg.append(self._compose_cell_info(obj))
         return "\n".join(msg) + "\n"
-    def _compose_cell_info(self, x, y):
+    def _compose_cell_info(self, obj):
         '''
             Returns a string representing info about a cell @(x, y)
         '''
-        cell = self.field[y][x]
-        return "%d %d %d %s %d" % (x, y, cell.owner, cell.CharRepr, cell.hitpoints)
+        return "%d %d %d %s %d" % (obj.x, obj.y, obj.owner, obj.CharRepr, obj.hitpoints)
     def _applyDirection(x, y, direction):
         '''
             Utility function. 
@@ -138,90 +144,19 @@ class Game:
             Returns true iff (x,y) is inside the board
         '''
         return x >= 0 and x < self.SizeX and y >= 0 and y < self.SizeY
-    def _setMoveRequest(self, x, y, newx, newy):
-        ''' 
-            Define that the object @(x,y) wants to move to (newx, newy)
-            Stay calm: the object isn't moving anywhere yet.
-        '''
-        self.field[y][x].newPosition = (newx, newy)
-
-        if self.field[newy][newx] is None:
-            self.field[newy][newx] = Game.Cell( )
-        self.field[newy][newx].moveCandidates.append((x,y))
         
     def _cleanup(self):
         '''
             Cleans up intermediate turn info about battles, movements, etc.
             Call each time a turn ends.
         '''
-        for y in range(self.SizeY):
-            for x in range(self.SizeX):
-                cell = self.field[y][x]
-                if not (cell is None):
-                    cell.moveCandidates = []
-                    cell.buildCandidates = []
-                    if isinstance(cell, Game.Object):
-                        cell.newPosition = None
-                        cell.willMove = None
-    def _resolveMovement(self):
-        '''
-            Performs collisions resolution and does actual moving of units
-        '''
-        def passable(startx, starty):
-            def passableRec(x, y, check=True):
-                cell = self.field[y][x]
-                if check and (x, y) == (startx, starty):
-                    return True
-                if cell is None:
-                    return True
-                if len(cell.moveCandidates) >= 2:
-                    return False
-                if not isinstance(cell, Game.Object):
-                    return True
-                if not (cell.willMove is None):
-                    return cell.willMove
-                if cell.newPosition is None:
-                    return False
-                newx, newy = cell.newPosition
-                if passableRec(newx, newy):
-                    cell.willMove = True
-                    return True
-                else:
-                    cell.willMove = False
-                    return False
-            return passableRec(startx, starty, False)
-        def pushRec(x, y):
-            cell = self.field[y][x]
-            if isinstance(cell, Game.Object):
-                (newx, newy) = cell.newPosition
-                pushRec(newx, newy)
-                self.field[newy][newx] = cell
+        for (x, y) in self._cellsToCleanup:
+            if not self.field[y][x] in self.objects:
                 self.field[y][x] = None
-                
-        # first determine simple -><- collisions
-        for y in range(self.SizeY):
-            for x in range(self.SizeX):
-                cell = self.field[y][x]
-                if isinstance(cell, Game.Object) and cell.newPosition:
-                    newCell = self.field[cell.newPosition[1]][cell.newPosition[0]]
-                    if isinstance(newCell, Game.Object) and newCell.newPosition and \
-                        newCell.newPosition == (x, y):
-                        cell.willMove = False
-        # now resolve everything else, including cyclic rotation
-        for y in range(self.SizeY):
-            for x in range(self.SizeX):
-                cell = self.field[y][x]
-                if isinstance(cell, Game.Object) and cell.newPosition:
-                    (newx, newy) = cell.newPosition
-                    if cell.willMove is None:
-                        cell.willMove = passable(newx, newy)
-        # only now we can actually safely move
-        for y in range(self.SizeY):
-            for x in range(self.SizeX):
-                cell = self.field[y][x]
-                if isinstance(cell, Game.Object) and cell.newPosition:
-                    (newx, newy) = cell.newPosition
-                    if (cell.willMove is True) and (cell.newPosition != (x, y)):
-                        self.field[y][x] = None
-                        pushRec(newx, newy)
-                        self.field[newy][newx] = cell
+        for obj in self.objects:
+            obj.willMove = None
+            obj.newPosition = None
+            obj.moveCandidates = []
+            obj.buildCandidates = []
+        self._cellsToCleanup = set()
+    from .movement import _resolveMovement, _setMoveRequest

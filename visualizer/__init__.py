@@ -27,27 +27,23 @@ class VisualizerWidget(QtGui.QWidget):
         hBarHeight = cellSize * 0.1
         hBarLeftOffset = (cellSize - hBarWidth) * 0.5
         hBarTopOffset = cellSize * 0.1
-        tmpField = self._visualizer.field
+        objects = self._visualizer.objects
 
         painter = QtGui.QPainter()
         painter.begin(self)
         painter.setFont(QtGui.QFont('Decorative', cellSize / 2))
-        for y in range(self._visualizer.game.SizeY):
-            for x in range(self._visualizer.game.SizeX):
-                o = tmpField[y][x]
-                if isinstance(o, gameengine.Game.Object):
-                    painter.setPen(self.PlayerColors[o.owner])
-                    painter.drawText( makeRect(x, y, cellSize), ObjAlignMode, o.CharRepr)
-                    hBarGreen = hBarWidth * o.hitpoints / o.MaxHitpoints
-                    hBarRed = hBarWidth - hBarGreen 
-                    hBarLeft = x * cellSize + hBarLeftOffset
-                    hBarTop = y * cellSize + hBarTopOffset
-                    painter.setPen(QtGui.QColor(QtCore.Qt.black))
-                    painter.setBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.green)))
-                    painter.drawRect( QtCore.QRect(hBarLeft, hBarTop, hBarGreen, hBarHeight))
-                    painter.setBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.red)))
-                    painter.drawRect( QtCore.QRect(hBarLeft + hBarGreen, hBarTop, hBarRed, hBarHeight))
-
+        for o in objects:
+            painter.setPen(self.PlayerColors[o.owner])
+            painter.drawText( makeRect(o.x, o.y, cellSize), ObjAlignMode, o.CharRepr)
+            hBarGreen = hBarWidth * o.hitpoints / o.MaxHitpoints
+            hBarRed = hBarWidth - hBarGreen 
+            hBarLeft = o.x * cellSize + hBarLeftOffset
+            hBarTop = o.y * cellSize + hBarTopOffset
+            painter.setPen(QtGui.QColor(QtCore.Qt.black))
+            painter.setBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.green)))
+            painter.drawRect( QtCore.QRect(hBarLeft, hBarTop, hBarGreen, hBarHeight))
+            painter.setBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.red)))
+            painter.drawRect( QtCore.QRect(hBarLeft + hBarGreen, hBarTop, hBarRed, hBarHeight))
         painter.end()
         
     def event(self, ev):
@@ -65,7 +61,7 @@ class Visualizer:
             sets onTurnEnd binding, spawns a GUI thread
         """
         self.game = game
-        self.field = copy.deepcopy(self.game.field)
+        self.objects = copy.deepcopy(self.game.objects)
         self._thread = threading.Thread(target=self._mainLoop)
         self._thread.setDaemon(True)
         self._thread.start( )
@@ -74,9 +70,9 @@ class Visualizer:
         """
             The event handler. Abuses the fact that assignment is atomic
         """
-        self.field = copy.deepcopy(self.game.field)
+        self.objects = copy.deepcopy(self.game.objects)
         self._app.postEvent(self._widget, QtCore.QEvent(QtCore.QEvent.User + 1))
-        time.sleep(0.2)
+        time.sleep(0.1)
         if not self._thread.is_alive():
             raise VisualizerClosedException()
 
