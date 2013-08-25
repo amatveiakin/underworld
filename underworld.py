@@ -5,7 +5,7 @@ import threading
 import config
 import gameengine
 import playerstate as PlayerState
-
+from visualizer import Visualizer
 
 class Unbuffered:
     ''' Unbuffered output wrapper '''
@@ -121,6 +121,7 @@ def main():
     for (playerExeFile, iPlayer) in zip(playerNames, range(playerNum)):
         playerList.append(Client(playerExeFile, iPlayer))
     game.setClients(playerList)
+    v = Visualizer(game)
     initialMessages = game.initialMessages()
     for (player, message) in zip(playerList, initialMessages):
         with MutexLocker(player.lock):
