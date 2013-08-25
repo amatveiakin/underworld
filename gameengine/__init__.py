@@ -215,6 +215,12 @@ class Game:
                     (newx, newy) = cell.newPosition
                     if cell.willMove is None:
                         cell.willMove = passable(newx, newy)
+        # only now we can actually safely move
+        for y in range(self.SizeY):
+            for x in range(self.SizeX):
+                cell = self.field[y][x]
+                if isinstance(cell, Game.Object) and cell.newPosition:
+                    (newx, newy) = cell.newPosition
                     if (cell.willMove is True) and (cell.newPosition != (x, y)):
                         self.field[y][x] = None
                         pushRec(newx, newy)
