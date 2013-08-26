@@ -83,11 +83,16 @@ class Game:
                     pass
                 
         self._resolveMovement( )
+        self._resolveBattle( )
+        self._checkWinConditions( )
         self._cleanup( )
         self.turn += 1
         res = []
         for iPlayer in range(self.nPlayers):
-            res.append((PlayerState.THINKING, self.getPlayerInfoString(iPlayer) + "end\n"))
+            if PlayerState.inPlay(self.clients[iPlayer].state):
+                res.append((PlayerState.THINKING, self.getPlayerInfoString(iPlayer) + "end\n"))
+            else:
+                res.append((self.clients[iPlayer].state, "end\n"))
         if callable(self.onTurnEnd):
             try:
                 self.onTurnEnd( )
@@ -116,34 +121,22 @@ class Game:
         msg = []
         for obj in self.objects:
             msg.append(self._compose_cell_info(obj))
-        return "\n".join(msg) + "\n"
+        return "\n".join(msg) + ("\n" if msg else "")
     def _compose_cell_info(self, obj):
         '''
             Returns a string representing info about a cell @(x, y)
         '''
         return "%d %d %d %s %d" % (obj.x, obj.y, obj.owner, obj.CharRepr, obj.hitpoints)
-    def _applyDirection(x, y, direction):
-        '''
-            Utility function. 
-            Returns where (x,y) would be if it went by direction in form of a  tuple.
-        '''
-        newx = x
-        newy = y
-        if direction == 'N':
-            newy = y - 1
-        elif direction == 'S':
-            newy = y + 1
-        elif direction == 'W':
-            newx = x - 1
-        elif direction == 'E':
-            newx = x + 1
-        return (newx, newy)
-    def _isInside(self, x, y):
-        ''' 
-            Utility function.
-            Returns true iff (x,y) is inside the board
-        '''
-        return x >= 0 and x < self.SizeX and y >= 0 and y < self.SizeY
+    def _checkWinConditions(self):
+        alivePlayers = set( )
+        for obj in self.objects:
+            alivePlayers.add(obj.owner)
+        for iPlayer in range(self.nPlayers):
+            if not iPlayer in alivePlayers:
+                self.clients[iPlayer].state = PlayerState.LOST
+        if len(alivePlayers) == 1:
+            self.clients[alivePlayers.pop( )].state = PlayerState.WON
+            
         
     def _cleanup(self):
         '''
@@ -160,3 +153,5 @@ class Game:
             obj.buildCandidates = []
         self._cellsToCleanup = set()
     from .movement import _resolveMovement, _setMoveRequest
+    from .util import _applyDirection, _isInside, _neighbourhood
+    from .battle import _resolveBattle

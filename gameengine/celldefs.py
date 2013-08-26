@@ -41,3 +41,4 @@ class Warrior (Unit):
     DamageToUnits = 100
     Cost = 500
     CharRepr = "W"
+    AttackRange = 2

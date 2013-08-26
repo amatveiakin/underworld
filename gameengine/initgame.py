@@ -27,13 +27,12 @@ def initFooGame2(self):
 
     self.field[0][0] = Warrior()
     self.field[0][0].owner = 0
-    self.field[0][0].hitpoints /= 2
     self.field[0][1] = Warrior()
     self.field[0][1].owner = 0
-    self.field[1][1] = Warrior()
-    self.field[1][1].owner = 0
-    self.field[1][0] = Warrior()
-    self.field[1][0].owner = 0
+    self.field[0][2] = Warrior()
+    self.field[0][2].owner = 0
+    self.field[0][3] = Warrior()
+    self.field[0][3].owner = 0
 
     self.field[self.SizeY - 1][self.SizeX - 1] = Warrior()
     self.field[self.SizeY - 1][self.SizeX - 1].owner = 1
