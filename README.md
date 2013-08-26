@@ -13,3 +13,4 @@ Tests
 -----
 * python3 underworld.py "python3 bots/player2.py" "python3 bots/player2.py"
 * python3 underworld.py "python3 bots/player3.py" "python3 bots/player2.py"
+* python3 underworld.py "python3 bots/player2.py" "python3 bots/player4.py"
