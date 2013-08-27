@@ -23,13 +23,14 @@ import playerstate as PlayerState
 class Game:
     from .celldefs import Cell, Object, Building, Castle, Farm, Barracks, Unit, Warrior
     from .initgame import initFooGame1, initFooGame2
+
     class Player:
         InitialMoney = 3000
-        def __init__(self):
-            self.money = InitialMoney
 
     def __init__(self):
         self.onTurnEnd = None 
+        self._buildRequests = dict( )
+        self._cellsToCleanup = set()
         pass
 
     def setClients(self, clients):
@@ -46,8 +47,6 @@ class Game:
                     self.field[y][x].x = x
                     self.field[y][x].y = y
                     self.objects.add(self.field[y][x])
-        self._cellsToCleanup = set()
-
 
     def processTurn(self, playerMoves):
         ''' 
@@ -56,7 +55,8 @@ class Game:
             returns list of nPlayers tuples (new playerState, message to player)
         '''
         for iPlayer in range(self.nPlayers):
-            if not PlayerState.inPlay(self.clients[iPlayer].state):
+            if not PlayerState.inPlay(self.clients[iPlayer].state) or  \
+                not playerMoves[iPlayer]:
                 continue
             linesFromPlayer = playerMoves[iPlayer].strip( ).split("\n")
             for line in linesFromPlayer:
@@ -66,24 +66,29 @@ class Game:
                     y = int(words[2])
                     cell = self.field[y][x]
                     if words[0] == "move":
-                        if cell.owner != iPlayer or not cell.CanMove:
+                        if cell.owner != iPlayer or not cell.CanMove or cell.newPosition:
                             raise Exception( )
                         direction = words[3]
                         (newx, newy) = Game._applyDirection(x, y, direction)
                         if self._isInside(newx, newy):
                             self._setMoveRequest(x, y, newx, newy)
                     elif words[0] == "build":
-                        pass
+                        alliedBuildings = (o for o in self._neighbours(x, y, 2) \
+                            if o.owner == iPlayer and isinstance(o, Game.Building))
+                        if len(list(alliedBuildings)) > 0:
+                            self._setBuildRequest(x, y, words[3], iPlayer, True)
                     elif words[0] == "spawn":
                         pass
                     else:
                         raise Exception( )
-                except:
+                except Exception as e:
+                    raise e
                     # just ignore incorrect moves
                     pass
                 
         self._resolveMovement( )
         self._resolveBattle( )
+        self._resolveBuilding( )
         self._checkWinConditions( )
         self._cleanup( )
         self.turn += 1
@@ -100,6 +105,7 @@ class Game:
                 # kick everyone: the interactive UI is dead
                 res = [ (PlayerState.KICKED, "" ) ] * self.nPlayers
         return res
+
     def initialMessages(self):
         '''
             Returs the list of nPlayers initial messages to players
@@ -112,6 +118,7 @@ class Game:
             
     def isPlayerNumAcceptable(self, nPlayers):
         return nPlayers in [2, 4]
+
     def getPlayerInfoString(self, iPlayer):
         '''
             The string representing all objects visible to the player iPlayer
@@ -127,6 +134,7 @@ class Game:
             Returns a string representing info about a cell @(x, y)
         '''
         return "%d %d %d %s %d" % (obj.x, obj.y, obj.owner, obj.CharRepr, obj.hitpoints)
+
     def _checkWinConditions(self):
         alivePlayers = set( )
         for obj in self.objects:
@@ -136,7 +144,6 @@ class Game:
                 self.clients[iPlayer].state = PlayerState.LOST
         if len(alivePlayers) == 1:
             self.clients[alivePlayers.pop( )].state = PlayerState.WON
-            
         
     def _cleanup(self):
         '''
@@ -150,8 +157,9 @@ class Game:
             obj.willMove = None
             obj.newPosition = None
             obj.moveCandidates = []
-            obj.buildCandidates = []
         self._cellsToCleanup = set()
+        self._buildRequests = dict( )
     from .movement import _resolveMovement, _setMoveRequest
-    from .util import _applyDirection, _isInside, _neighbourhood
+    from .util import _applyDirection, _isInside, _neighbourhood, _neighbours
     from .battle import _resolveBattle
+    from .building import _setBuildRequest, _resolveBuilding, _canBeBuilt

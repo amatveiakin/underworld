@@ -1,7 +1,8 @@
+# partial Game class
+
 class Cell:
     def __init__(self):
         self.moveCandidates = []
-        self.buildCandidates = []
         
 class Object(Cell):
     VisionRange = 3
@@ -42,3 +43,6 @@ class Warrior (Unit):
     Cost = 500
     CharRepr = "W"
     AttackRange = 2
+
+ObjTypes = [Castle, Farm, Barracks, Warrior]
+ObjTypeDict = {objType.CharRepr : objType for objType in ObjTypes}
