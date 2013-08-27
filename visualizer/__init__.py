@@ -63,7 +63,7 @@ class Visualizer:
         self.game = game
         self.objects = copy.deepcopy(self.game.objects)
         self._thread = threading.Thread(target=self._mainLoop)
-        self._thread.setDaemon(True)
+        #self._thread.setDaemon(True)
         self._thread.start( )
 
     def _turnEnd(self):
