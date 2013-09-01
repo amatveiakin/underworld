@@ -27,14 +27,10 @@ def initFooGame2(self):
     for y in range(self.SizeY):
         self.field.append([None] * self.SizeX)
 
-    self.field[0][0] = Warrior()
+    self.field[0][0] = Barracks()
     self.field[0][0].owner = 0
     self.field[0][1] = Warrior()
     self.field[0][1].owner = 0
-    self.field[0][2] = Warrior()
-    self.field[0][2].owner = 0
-    self.field[0][3] = Warrior()
-    self.field[0][3].owner = 0
 
     self.field[self.SizeY - 1][self.SizeX - 1] = Warrior()
     self.field[self.SizeY - 1][self.SizeX - 1].owner = 1
