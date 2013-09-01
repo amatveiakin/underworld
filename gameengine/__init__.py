@@ -76,7 +76,7 @@ class Game:
                         alliedBuildings = (o for o in self._neighbours(x, y, 2) \
                             if o.owner == iPlayer and isinstance(o, Game.Building))
                         if len(list(alliedBuildings)) > 0:
-                            self._setBuildRequest(x, y, words[3], iPlayer, True)
+                            self._setBuildRequest(x, y, words[3], iPlayer)
                     elif words[0] == "spawn":
                         pass
                     else:
