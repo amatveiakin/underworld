@@ -12,6 +12,7 @@ class Object(Cell):
         self.hitpoints = self.MaxHitpoints
         self.newPosition = None
         self.willMove = None
+        self.hasSpawnRequest = False
 
 class Building (Object):
     CanMove = False
