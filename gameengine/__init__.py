@@ -30,6 +30,7 @@ class Game:
     def __init__(self):
         self.onTurnEnd = None 
         self._buildRequests = dict( )
+        self._spawnRequests = dict( )
         self._cellsToCleanup = set()
         pass
 
@@ -78,7 +79,11 @@ class Game:
                         if len(list(alliedBuildings)) > 0:
                             self._setBuildRequest(x, y, words[3], iPlayer)
                     elif words[0] == "spawn":
-                        pass
+                        if cell.owner != iPlayer:
+                            raise Exception( )
+                        direction = words[3]
+                        (newx, newy) = Game._applyDirection(x, y, direction)
+                        self._setSpawnRequest(newx, newy, "W", iPlayer, cell)
                     else:
                         raise Exception( )
                 except Exception as e:
@@ -89,6 +94,7 @@ class Game:
         self._resolveMovement( )
         self._resolveBattle( )
         self._resolveBuilding( )
+        self._resolveSpawning( )
         self._checkWinConditions( )
         self._cleanup( )
         self.turn += 1
@@ -157,9 +163,12 @@ class Game:
             obj.willMove = None
             obj.newPosition = None
             obj.moveCandidates = []
+            obj.hasSpawnRequest = False
         self._cellsToCleanup = set()
         self._buildRequests = dict( )
+        self._spawnRequests = dict( )
     from .movement import _resolveMovement, _setMoveRequest
     from .util import _applyDirection, _isInside, _neighbourhood, _neighbours
     from .battle import _resolveBattle
     from .building import _setBuildRequest, _resolveBuilding, _canBeBuilt
+    from .spawning import _setSpawnRequest, _resolveSpawning, _canSpawn
