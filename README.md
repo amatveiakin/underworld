@@ -11,6 +11,9 @@ Requirements
 
 Tests
 -----
-* python3 underworld.py "python3 bots/player2.py" "python3 bots/player2.py"
-* python3 underworld.py "python3 bots/player3.py" "python3 bots/player2.py"
-* python3 underworld.py "python3 bots/player2.py" "python3 bots/player4.py"
+* python3 underworld.py "python3 bots/player2.py" "python3 bots/player2.py" -
+  test movement
+* python3 underworld.py "python3 bots/player2.py" "python3 bots/player4.py" -
+  test building
+* python3 underworld.py "python3 bots/player5.py" "python3 bots/player4.py" -
+  test spawning
