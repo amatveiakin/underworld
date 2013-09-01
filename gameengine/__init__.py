@@ -91,6 +91,7 @@ class Game:
                     # just ignore incorrect moves
                     pass
                 
+        self._resolveIncome( )
         self._resolveMovement( )
         self._resolveBattle( )
         self._resolveBuilding( )
@@ -140,6 +141,10 @@ class Game:
             Returns a string representing info about a cell @(x, y)
         '''
         return "%d %d %d %s %d" % (obj.x, obj.y, obj.owner, obj.CharRepr, obj.hitpoints)
+    def _resolveIncome(self):
+        for o in self.objects:
+            if isinstance(o, Game.Farm):
+                self.clients[o.owner].money += 50
 
     def _checkWinConditions(self):
         alivePlayers = set( )
