@@ -5,8 +5,9 @@ def _canBeBuilt(self, charRepr, asBuilding):
     '''
         Can the object be built (asBuilding = true) / spawned (asBuilding = false)
     '''
-    if not charRepr in ObjTypes:
-        objType = ObjTypeDict[charRepr]
+    if not charRepr in ObjTypeDict:
+        return False
+    objType = ObjTypeDict[charRepr]
     if not objType.CanBeBuilt:
         return False
     return asBuilding == issubclass(objType, Building)
