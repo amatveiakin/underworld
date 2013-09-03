@@ -7,6 +7,7 @@ import gameengine
 import playerstate as PlayerState
 import json
 from visualizer import Visualizer
+from options import parseOptions
 
 class Unbuffered:
     ''' Unbuffered output wrapper '''
@@ -115,8 +116,8 @@ class Client:
 
 def main():
     game = gameengine.Game()
-
-    fGame = open("game.json")
+    options = parseOptions( )
+    fGame = open(options.game)
     gameDesc = json.load(fGame)
     fGame.close( )
 
