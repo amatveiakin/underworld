@@ -5,16 +5,22 @@ class Cell:
         self.moveCandidates = []
         
 class Object(Cell):
+    TakesDamage = False
     VisionRange = 3
     CanBeBuilt = True
     def __init__(self):
         super().__init__()
-        self.hitpoints = self.MaxHitpoints
         self.newPosition = None
         self.willMove = None
         self.hasSpawnRequest = False
 
-class Building (Object):
+class ObjectWithHitpoints(Object):
+    TakesDamage = True
+    def __init__(self): 
+        super().__init__()
+        self.hitpoints = self.MaxHitpoints
+
+class Building (ObjectWithHitpoints):
     CanMove = False
     CanAttack = False
 
@@ -33,7 +39,7 @@ class Barracks (Building):
     Cost = 1500
     CharRepr = "B"
 
-class Unit (Object):
+class Unit (ObjectWithHitpoints):
     CanMove = True
     CanAttack = True
 
@@ -45,5 +51,14 @@ class Warrior (Unit):
     CharRepr = "W"
     AttackRange = 2
 
-ObjTypes = [Castle, Farm, Barracks, Warrior]
+class Wall(Object):
+    CanBeBuilt = False
+    CanAttack = False
+    CanMove = False
+    def __init__(self):
+        super().__init__( )
+        self.owner = -1
+    CharRepr = "#"
+
+ObjTypes = [Castle, Farm, Barracks, Warrior, Wall]
 ObjTypeDict = {objType.CharRepr : objType for objType in ObjTypes}

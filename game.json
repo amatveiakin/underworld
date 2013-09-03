@@ -7,5 +7,6 @@
     "objects": [{"x": 0, "y": 0, "type": "C", "owner": 0},
                 {"x": 0, "y": 1, "type": "B", "owner": 0},
                 {"x": 9, "y": 9, "type": "C", "owner": 1},
-                {"x": 9, "y": 8, "type": "B", "owner": 1} ]
+                {"x": 9, "y": 8, "type": "B", "owner": 1},
+                {"x": 5, "y": 5, "type": "#", "owner": -1} ]
 }

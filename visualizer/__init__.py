@@ -7,7 +7,8 @@ import sys
 
 def makeRect(x, y, cellSize):
     return QtCore.QRect(x * cellSize, y * cellSize, cellSize, cellSize)
-ObjAlignMode = QtCore.Qt.AlignHCenter | QtCore.Qt.AlignBottom
+ObjHPAlignMode = QtCore.Qt.AlignHCenter | QtCore.Qt.AlignBottom
+ObjAlignMode = QtCore.Qt.AlignCenter
 
 class VisualizerWidget(QtGui.QWidget):
     PlayerColors = [ QtGui.QColor(255, 0, 0), QtGui.QColor(0, 0, 255),
@@ -31,19 +32,27 @@ class VisualizerWidget(QtGui.QWidget):
 
         painter = QtGui.QPainter()
         painter.begin(self)
-        painter.setFont(QtGui.QFont('Decorative', cellSize / 2))
+        painter.setFont(QtGui.QFont('', cellSize / 2))
         for o in objects:
+            if o.owner >= 0:
+                mainColor = self.PlayerColors[o.owner]
+            else:
+                mainColor = QtGui.QColor([0,0,0])
+            if isinstance(o, gameengine.Game.ObjectWithHitpoints):
+                hBarGreen = hBarWidth * o.hitpoints / o.MaxHitpoints
+                hBarRed = hBarWidth - hBarGreen 
+                hBarLeft = o.x * cellSize + hBarLeftOffset
+                hBarTop = o.y * cellSize + hBarTopOffset
+                painter.setPen(QtGui.QColor(QtCore.Qt.black))
+                painter.setBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.green)))
+                painter.drawRect( QtCore.QRect(hBarLeft, hBarTop, hBarGreen, hBarHeight))
+                painter.setBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.red)))
+                painter.drawRect( QtCore.QRect(hBarLeft + hBarGreen, hBarTop, hBarRed, hBarHeight))
+                alignMode = ObjHPAlignMode
+            else:
+                alignMode = ObjAlignMode
             painter.setPen(self.PlayerColors[o.owner])
-            painter.drawText( makeRect(o.x, o.y, cellSize), ObjAlignMode, o.CharRepr)
-            hBarGreen = hBarWidth * o.hitpoints / o.MaxHitpoints
-            hBarRed = hBarWidth - hBarGreen 
-            hBarLeft = o.x * cellSize + hBarLeftOffset
-            hBarTop = o.y * cellSize + hBarTopOffset
-            painter.setPen(QtGui.QColor(QtCore.Qt.black))
-            painter.setBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.green)))
-            painter.drawRect( QtCore.QRect(hBarLeft, hBarTop, hBarGreen, hBarHeight))
-            painter.setBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.red)))
-            painter.drawRect( QtCore.QRect(hBarLeft + hBarGreen, hBarTop, hBarRed, hBarHeight))
+            painter.drawText( makeRect(o.x, o.y, cellSize), alignMode, o.CharRepr)
         painter.end()
         
     def event(self, ev):
