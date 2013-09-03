@@ -9,11 +9,12 @@ Requirements
 ------------
 * pyqt4 for python3
 
+
+Usage
+-----
+python3 underworld.py
+
 Tests
 -----
-* python3 underworld.py "python3 bots/player2.py" "python3 bots/player2.py" -
-  test movement
-* python3 underworld.py "python3 bots/player2.py" "python3 bots/player4.py" -
-  test building
-* python3 underworld.py "python3 bots/player5.py" "python3 bots/player4.py" -
-  test spawning
+game.json - basic test for every feature
+

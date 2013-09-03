@@ -21,33 +21,39 @@
 import playerstate as PlayerState
 
 class Game:
-    from .celldefs import Cell, Object, Building, Castle, Farm, Barracks, Unit, Warrior
-    from .initgame import initFooGame1, initFooGame2
-
-    class Player:
-        InitialMoney = 3000
+    from .celldefs import Cell, Object, Building, Castle, Farm, Barracks, Unit, Warrior, ObjTypes, ObjTypeDict
 
     def __init__(self):
         self.onTurnEnd = None 
         self._buildRequests = dict( )
         self._spawnRequests = dict( )
         self._cellsToCleanup = set()
-        pass
 
-    def setClients(self, clients):
+    def setClients(self, clients, gameDesc):
         ''' initializes the game with specified list of clients '''
         self.nPlayers = len(clients)
-        assert(self.isPlayerNumAcceptable(self.nPlayers))
         self.clients = clients
-        self.initFooGame2( )
         self.turn = 0
-        self.objects = set()
+        self.objects = set( )
+        self.SizeX = gameDesc["sizex"]
+        self.SizeY = gameDesc["sizey"]
+        self.field = []
         for y in range(self.SizeY):
-            for x in range(self.SizeX):
-                if isinstance(self.field[y][x], Game.Object):
-                    self.field[y][x].x = x
-                    self.field[y][x].y = y
-                    self.objects.add(self.field[y][x])
+            self.field.append([None] * self.SizeX)
+        try:
+            for o in gameDesc["objects"]:
+                objType = Game.ObjTypeDict[o["type"]]
+                newObj = objType()
+                (newObj.x, newObj.y) = (o["x"], o["y"])
+                newObj.owner = o["owner"]
+                self.field[newObj.y][newObj.x] = newObj
+                self.objects.add(newObj)
+            for iPlayer in range(len(clients)):
+                self.clients[iPlayer].money = gameDesc["money"][iPlayer]
+        except Exception as e:
+            raise e
+                
+
 
     def processTurn(self, playerMoves):
         ''' 
