@@ -5,6 +5,7 @@ import threading
 import config
 import gameengine
 import playerstate as PlayerState
+import json
 from visualizer import Visualizer
 
 class Unbuffered:
@@ -115,12 +116,17 @@ class Client:
 def main():
     game = gameengine.Game()
 
+    fGame = open("game.json")
+    gameDesc = json.load(fGame)
+    fGame.close( )
+
     playerList = []
-    playerNames = sys.argv[1:]
+    playerNames = gameDesc["players"]
     playerNum = len(playerNames)
+
     for (playerExeFile, iPlayer) in zip(playerNames, range(playerNum)):
         playerList.append(Client(playerExeFile, iPlayer))
-    game.setClients(playerList)
+    game.setClients(playerList, gameDesc)
     v = Visualizer(game)
     initialMessages = game.initialMessages()
     for (player, message) in zip(playerList, initialMessages):
