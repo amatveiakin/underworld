@@ -26,7 +26,7 @@ while True:
                 elif words[3] == "B":
                     sys.stdout.write("spawn %d %d %s\n" % (myposx, myposy, direction))
             s = sys.stdin.readline( )
-        #sys.stdout.write("build %d %d F\n" % (random.randint(0, SizeX - 1), random.randint(0, SizeY - 1)))
+        sys.stdout.write("build %d %d F\n" % (random.randint(0, SizeX - 1), random.randint(0, SizeY - 1)))
         sys.stdout.write("end\n")
         sys.stdout.flush( )
     except:
