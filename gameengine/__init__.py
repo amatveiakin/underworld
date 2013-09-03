@@ -83,11 +83,12 @@ class Game:
                             raise Exception( )
                         direction = words[3]
                         (newx, newy) = Game._applyDirection(x, y, direction)
+                        if not self._isInside(newx, newy):
+                            raise Exception( )
                         self._setSpawnRequest(newx, newy, "W", iPlayer, cell)
                     else:
                         raise Exception( )
                 except Exception as e:
-                    raise e
                     # just ignore incorrect moves
                     pass
                 

@@ -43,4 +43,3 @@ def _resolveSpawning(self):
                 newObj.x, newObj.y = (x, y)
                 self.field[y][x] = newObj
                 self.objects.add(newObj)
-                print( "spawn!")
