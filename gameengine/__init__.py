@@ -8,9 +8,9 @@
 #   + 0th turn
 
 #  turn:
-#   x(int) y(int) owner(int) object(object) hitpoints(int)
+#   x(int) y(int) owner(int) object(object) [hitpoints(int)]
 #   ...
-#   x(int) y(int) owner(int) object(object) hitpoints(int)
+#   x(int) y(int) owner(int) object(object) [hitpoints(int)]
 #   end
 
 # Client -> server protocol:
@@ -21,7 +21,7 @@
 import playerstate as PlayerState
 
 class Game:
-    from .celldefs import Cell, Object, Building, Castle, Farm, Barracks, Unit, Warrior, ObjTypes, ObjTypeDict
+    from .celldefs import Cell, Object, ObjectWithHitpoints, Building, Farm, Castle, Barracks, Unit, Warrior, Wall, ObjTypes, ObjTypeDict
 
     def __init__(self):
         self.onTurnEnd = None 
@@ -147,16 +147,20 @@ class Game:
         '''
             Returns a string representing info about a cell @(x, y)
         '''
-        return "%d %d %d %s %d" % (obj.x, obj.y, obj.owner, obj.CharRepr, obj.hitpoints)
+        if isinstance(obj, Game.ObjectWithHitpoints):
+            return "%d %d %d %s %d" % (obj.x, obj.y, obj.owner, obj.CharRepr, obj.hitpoints)
+        else:
+            return "%d %d %d %s" % (obj.x, obj.y, obj.owner, obj.CharRepr)
     def _resolveIncome(self):
         for o in self.objects:
-            if isinstance(o, Game.Farm):
+            if o.owner >=0 and isinstance(o, Game.Farm):
                 self.clients[o.owner].money += 50
 
     def _checkWinConditions(self):
         alivePlayers = set( )
         for obj in self.objects:
-            alivePlayers.add(obj.owner)
+            if obj.owner >= 0:
+                alivePlayers.add(obj.owner)
         for iPlayer in range(self.nPlayers):
             if not iPlayer in alivePlayers:
                 self.clients[iPlayer].state = PlayerState.LOST

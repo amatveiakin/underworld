@@ -7,8 +7,9 @@ def _resolveBattle(self):
             obj.enemies = []
             for (x, y) in self._neighbourhood(obj.x, obj.y, obj.AttackRange):
                 enemy = self.field[y][x]
-                if enemy in self.objects:
-                    if obj.owner != enemy.owner:
+                if enemy in self.objects and \
+                   enemy.TakesDamage and \
+                   obj.owner != enemy.owner:
                         # enemy indeed
                         obj.enemies.append(enemy)
     # do the damage
