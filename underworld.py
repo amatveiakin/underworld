@@ -55,10 +55,16 @@ class Client:
         if PlayerState.isFinal(value):
             if self._state != value:
                 print("Player ", self.iPlayer + 1, " reaches his destiny: ", value)
+                if value == PlayerState.KICKED and self.reason:
+                    print(" Reason: ", self.reason)
             self.process.kill()
+        if value == PlayerState.THINKING:
+            self.startThinkingEvent.set( )
+        else:
+            self.startThinkingEvent.clear( )
         self._state = value
 
-    def __init__(self, exeName, iPlayer):
+    def __init__(self, exeName, iPlayer, onReady=None):
         ''' Initialize a player 
                 Args:
                     exeName - the executable name ( should not spawn new processes )
@@ -68,47 +74,61 @@ class Client:
         self.thread = threading.Thread(target=self.playerLoop)
         self.thread.setDaemon(True)
         self.lock = threading.RLock()
+        self.onReady = onReady
         self._state = PlayerState.NOT_INITIATED
+        self.startThinkingEvent = threading.Event( )
         self.iPlayer = iPlayer
         self.process.stdin = Unbuffered(self.process.stdin)
-        self.messageToPlayer = b""
         self.messageFromPlayer = b""
+        self.receivedLinesNo = 0
+        self.reason = ""
     def handshake(self):
         ''' Perform handshake. If it fails, kick the player '''
-        self.process.stdin.write(config.handshakeSyn + b"\n")
         answer = self.process.stdout.readline().strip()
         with MutexLocker(self.lock):
+            if answer != config.handshakeAck:
+                self.reason = "Handshake failed"
             if self.state == PlayerState.NOT_INITIATED:
-                self.state = PlayerState.THINKING if answer == config.handshakeAck else PlayerState.KICKED
+                if answer == config.handshakeAck:
+                    self.state = PlayerState.READY
+                    self.onReady(self)
+                else:
+                    self.state = PlayerState.KICKED
     def playerLoop(self):
         ''' Player's thread main function.
             Handshakes, then repeatedly performs the IO while player is in play.
         '''
         self.handshake()
         while True:
+            if not PlayerState.inPlay(self.state):
+                break
+            self.startThinkingEvent.wait( )
+            receivedMessage = self.process.stdout.readline(config.maxRecvLineLen)
             with MutexLocker(self.lock):
-                if not PlayerState.inPlay(self.state):
-                    break
-                messageToPlayer = self.messageToPlayer
-                self.messageToPlayer = b""
-            if messageToPlayer:
-                self.process.stdin.write(messageToPlayer)
-            if self.state != PlayerState.READY:
-                newCommand = self.process.stdout.readline()
-                with MutexLocker(self.lock):
-                    if newCommand.strip() == b"end":
-                        self.state = PlayerState.READY
-                    else:
-                        self.messageFromPlayer += newCommand
-            time.sleep(config.mainLoopIterationDelay)
+                if receivedMessage.strip() == b"end":
+                    self.state = PlayerState.READY
+                    if callable(self.onReady):
+                        self.onReady(self)
+                else:
+                    if not self._isMessageSecure(receivedMessage):
+                        self.reason = "Spam protection"
+                        self.state = PlayerState.KICKED
+                        break
+                    self.messageFromPlayer += receivedMessage
+                    self.receivedLinesNo += 1
+    def _isMessageSecure(self, message):
+        return self.receivedLinesNo < config.maxRecvLinesNo and \
+            len(self.messageFromPlayer) + len(message) < config.maxRecvSize and \
+            message[-1:] == b"\n"
 
     def run(self):
         ''' Start player's IO '''
         self.thread.start()
 
-    def kick(self):
+    def kick(self, reason="for nothing"):
         ''' Kick the player '''
         with MutexLocker(self.lock):
+            self.reason = reason
             self.state = PlayerState.KICKED
     def __repr__(self):
         ''' String representation - just the player's id '''
@@ -125,50 +145,66 @@ def main():
     playerNames = gameDesc["players"]
     playerNum = len(playerNames)
 
+    thinkingSetLock = threading.RLock( )
+    thinkingSet = set( )
+    everyoneReadyEvent = threading.Event( )
+    def onClientStopThinking(client):
+        with MutexLocker(thinkingSetLock):
+           if client in thinkingSet:
+               thinkingSet.remove(client)
+           if thinkingSet == set( ):
+               everyoneReadyEvent.set( )
+
     for (playerExeFile, iPlayer) in zip(playerNames, range(playerNum)):
-        playerList.append(Client(playerExeFile, iPlayer))
+        playerList.append(Client(playerExeFile, iPlayer, onClientStopThinking))
+
     game.setClients(playerList, gameDesc)
     v = Visualizer(game)
     initialMessages = game.initialMessages()
+    thinkingSet = set(playerList)
     for (player, message) in zip(playerList, initialMessages):
-        with MutexLocker(player.lock):
-            player.messageToPlayer += bytearray(message, "utf-8")
+        player.process.stdin.write(config.handshakeSyn + b"\n")
         player.run()
 
-    turnEndTime = time.time() + config.turnDurationInSec
+    everyoneReadyEvent.wait(config.turnDurationInSec)
+    everyoneReadyEvent.clear( )
+    with MutexLocker(thinkingSetLock):
+        thinkingSet = set( )
+        for (player, message) in zip(playerList, initialMessages):
+            if player.state == PlayerState.READY:
+                player.state = PlayerState.THINKING
+                thinkingSet.add(player)
+                player.process.stdin.write(bytearray(message, "utf-8"))
+
     while True:
-        somePlayersThinking = False
+        everyoneReadyEvent.wait(config.turnDurationInSec)
+        everyoneReadyEvent.clear( )
+        playerMoves = []
         for player in playerList:
             with MutexLocker(player.lock):
-                somePlayersThinking |= (player.state in [PlayerState.THINKING, PlayerState.NOT_INITIATED])
-        if not somePlayersThinking or time.time() > turnEndTime:
-            print("Let the turn ", game.turn, " end!")
-            playerMoves = []
-            for player in playerList:
-                with MutexLocker(player.lock):
-                    if player.state == PlayerState.THINKING:
-                        player.kick()
-                        playerMoves.append(None)
-                    else:
-                        playerMoves.append(player.messageFromPlayer.decode("utf-8"))
-                        player.messageFromPlayer = b""
-            somebodyStillPlays = False
-            for player in playerList:
-                with MutexLocker(player.lock):
-                    somebodyStillPlays |= PlayerState.inPlay(player.state)
-            if not somebodyStillPlays:
-                print("Game over!")
-                return
+                if player.state == PlayerState.THINKING:
+                    player.kick("Timeout")
+                    playerMoves.append(None)
+                else:
+                    playerMoves.append(player.messageFromPlayer.decode("utf-8"))
+                    player.messageFromPlayer = b""
+                    player.receivedLinesNo = 0
 
-            engineReply = game.processTurn(playerMoves)
+        engineReply = game.processTurn(playerMoves)
+        print("Let the turn ", game.turn, " end!")
+        somebodyStillPlays = False
+        with MutexLocker(thinkingSetLock):
+            thinkingSet = set( )
             for (player, reply) in zip(playerList, engineReply):
                 with MutexLocker(player.lock):
                     player.state = reply[0]
-                    player.messageToPlayer += bytearray(reply[1], "utf-8")
-
-            turnEndTime = time.time() + config.turnDurationInSec
-
-        time.sleep(config.mainLoopIterationDelay)
+                    somebodyStillPlays |=  PlayerState.inPlay(player.state)
+                    if player.state == PlayerState.THINKING:
+                        thinkingSet.add(player)
+                        player.process.stdin.write(bytearray(reply[1], "utf-8"))
+        if not somebodyStillPlays:
+            print("Game over!")
+            return
 
 if __name__ == "__main__":
     main()
