@@ -13,12 +13,9 @@ ObjAlignMode = QtCore.Qt.AlignCenter
 class VisualizerWidget(QtGui.QWidget):
     PlayerColors = [ QtGui.QColor(255, 0, 0), QtGui.QColor(0, 0, 255),
                      QtGui.QColor(0, 255, 0), QtGui.QColor(0, 0, 0) ]
-    def __init__(self, visualizer):
-        super(VisualizerWidget, self).__init__()
+    def __init__(self, parent, visualizer):
+        super(VisualizerWidget, self).__init__(parent)
         self._visualizer = visualizer
-        self.setGeometry(300, 300, 280, 170)
-        self.setWindowTitle('Underworld')
-        self.show()
     def paintEvent(self, event):
         size = self.size()
         cellWidth = size.width() / self._visualizer.game.SizeX
@@ -54,11 +51,21 @@ class VisualizerWidget(QtGui.QWidget):
             painter.setPen(self.PlayerColors[o.owner])
             painter.drawText( makeRect(o.x, o.y, cellSize), alignMode, o.CharRepr)
         painter.end()
-        
+
+class MainWidget(QtGui.QWidget):
+    def __init__(self, visualizer):
+        super( ).__init__( )
+        self.layout = QtGui.QHBoxLayout()
+        self.layout.setMargin(0)
+        self.layout.addWidget(VisualizerWidget(self, visualizer))
+        self.setLayout(self.layout)
+        self.setGeometry(300, 300, 280, 170)
+        self.setWindowTitle('Underworld')
+        self.show()
     def event(self, ev):
         if ev.type( ) == QtCore.QEvent.User + 1:
-            self.repaint( )
-        return super(VisualizerWidget, self).event(ev)
+            self.update( )
+        return super(MainWidget, self).event(ev)
 
 class VisualizerClosedException( Exception ):
     pass
@@ -72,7 +79,6 @@ class Visualizer:
         self.game = game
         self.objects = copy.deepcopy(self.game.objects)
         self._thread = threading.Thread(target=self._mainLoop)
-        #self._thread.setDaemon(True)
         self._thread.start( )
 
     def _turnEnd(self):
@@ -81,7 +87,7 @@ class Visualizer:
         """
         self.objects = copy.deepcopy(self.game.objects)
         self._app.postEvent(self._widget, QtCore.QEvent(QtCore.QEvent.User + 1))
-        time.sleep(0.1)
+        time.sleep(1)
         if not self._thread.is_alive():
             raise VisualizerClosedException()
 
@@ -90,7 +96,7 @@ class Visualizer:
             GUI main loop - a separate thread
         """
         self._app = QtGui.QApplication([])
-        self._widget = VisualizerWidget(self)
+        self._widget = MainWidget(self)
         self.game.onTurnEnd = self._turnEnd
         self._app.exec_()
 
