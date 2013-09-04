@@ -76,10 +76,12 @@ class Visualizer:
             Initialize a visualizer with an instance of Game.
             sets onTurnEnd binding, spawns a GUI thread
         """
+        self._readyEvent = threading.Event( )
         self.game = game
         self.objects = copy.deepcopy(self.game.objects)
         self._thread = threading.Thread(target=self._mainLoop)
         self._thread.start( )
+        self._readyEvent.wait( )
 
     def _turnEnd(self):
         """
@@ -98,6 +100,7 @@ class Visualizer:
         self._app = QtGui.QApplication([])
         self._widget = MainWidget(self)
         self.game.onTurnEnd = self._turnEnd
+        self._readyEvent.set( )
         self._app.exec_()
 
 __all__ = ["Visualizer"]
