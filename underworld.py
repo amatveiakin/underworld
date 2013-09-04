@@ -58,10 +58,13 @@ class Client:
                 if value == PlayerState.KICKED and self.reason:
                     print(" Reason: ", self.reason)
             self.process.kill()
-        if value == PlayerState.THINKING:
-            self.startThinkingEvent.set( )
-        else:
-            self.startThinkingEvent.clear( )
+        if value != self.state:
+            if value == PlayerState.THINKING:
+                self.startThinkingEvent.set( )
+            else:
+                self.startThinkingEvent.clear( )
+                if callable(self.onReady):
+                    self.onReady(self)
         self._state = value
 
     def __init__(self, exeName, iPlayer, onReady=None):
@@ -69,6 +72,8 @@ class Client:
                 Args:
                     exeName - the executable name ( should not spawn new processes )
                     iPlayer - player's unique ID
+                    onReady - the callback which is called when the player is ready
+                        onReady(player): player is a Client object
         '''
         self.process = subprocess.Popen(exeName.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         self.thread = threading.Thread(target=self.playerLoop)
@@ -91,7 +96,6 @@ class Client:
             if self.state == PlayerState.NOT_INITIATED:
                 if answer == config.handshakeAck:
                     self.state = PlayerState.READY
-                    self.onReady(self)
                 else:
                     self.state = PlayerState.KICKED
     def playerLoop(self):
@@ -107,8 +111,6 @@ class Client:
             with MutexLocker(self.lock):
                 if receivedMessage.strip() == b"end":
                     self.state = PlayerState.READY
-                    if callable(self.onReady):
-                        self.onReady(self)
                 else:
                     if not self._isMessageSecure(receivedMessage):
                         self.reason = "Spam protection"
@@ -167,7 +169,6 @@ def main():
         player.run()
 
     everyoneReadyEvent.wait(config.turnDurationInSec)
-    everyoneReadyEvent.clear( )
     with MutexLocker(thinkingSetLock):
         thinkingSet = set( )
         for (player, message) in zip(playerList, initialMessages):
@@ -175,10 +176,10 @@ def main():
                 player.state = PlayerState.THINKING
                 thinkingSet.add(player)
                 player.process.stdin.write(bytearray(message, "utf-8"))
+        everyoneReadyEvent.clear( )
 
     while True:
         everyoneReadyEvent.wait(config.turnDurationInSec)
-        everyoneReadyEvent.clear( )
         playerMoves = []
         for player in playerList:
             with MutexLocker(player.lock):
@@ -202,6 +203,7 @@ def main():
                     if player.state == PlayerState.THINKING:
                         thinkingSet.add(player)
                         player.process.stdin.write(bytearray(reply[1], "utf-8"))
+            everyoneReadyEvent.clear( )
         if not somebodyStillPlays:
             print("Game over!")
             return
