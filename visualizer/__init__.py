@@ -89,7 +89,7 @@ class Visualizer:
         """
         self.objects = copy.deepcopy(self.game.objects)
         self._app.postEvent(self._widget, QtCore.QEvent(QtCore.QEvent.User + 1))
-        time.sleep(1)
+        time.sleep(0.1)
         if not self._thread.is_alive():
             raise VisualizerClosedException()
 
