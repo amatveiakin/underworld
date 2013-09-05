@@ -6,8 +6,8 @@ import config
 import gameengine
 import playerstate as PlayerState
 import json
-from visualizer import Visualizer
 from options import parseOptions
+import importlib
 
 class Unbuffered:
     ''' Unbuffered output wrapper '''
@@ -161,7 +161,13 @@ def main():
         playerList.append(Client(playerExeFile, iPlayer, onClientStopThinking))
 
     game.setClients(playerList, gameDesc)
-    v = Visualizer(game)
+    if options.plugin != "":
+        try:
+            pluginModule = importlib.import_module("plugins." + options.plugin)
+            v = pluginModule.Plugin(game)
+        except:
+            print("Could'n initialize the plugin")
+            raise
     initialMessages = game.initialMessages()
     thinkingSet = set(playerList)
     for (player, message) in zip(playerList, initialMessages):
