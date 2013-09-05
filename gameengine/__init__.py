@@ -162,7 +162,7 @@ class Game:
             if obj.owner >= 0:
                 alivePlayers.add(obj.owner)
         for iPlayer in range(self.nPlayers):
-            if not iPlayer in alivePlayers:
+            if not iPlayer in alivePlayers and PlayerState.inPlay(self.clients[iPlayer].state):
                 self.clients[iPlayer].state = PlayerState.LOST
         if len(alivePlayers) == 1:
             self.clients[alivePlayers.pop( )].state = PlayerState.WON
