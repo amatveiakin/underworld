@@ -172,10 +172,14 @@ def main():
     with MutexLocker(thinkingSetLock):
         thinkingSet = set( )
         for (player, message) in zip(playerList, initialMessages):
-            if player.state == PlayerState.READY:
-                player.state = PlayerState.THINKING
-                thinkingSet.add(player)
-                player.process.stdin.write(bytearray(message, "utf-8"))
+            with MutexLocker(player.lock):
+                if player.state == PlayerState.READY:
+                    player.state = PlayerState.THINKING
+                    thinkingSet.add(player)
+                    player.process.stdin.write(bytearray(message, "utf-8"))
+                else:
+                    player.reason = "Handshake timeout"
+                    player.state = PlayerState.KICKED
         everyoneReadyEvent.clear( )
 
     while True:
