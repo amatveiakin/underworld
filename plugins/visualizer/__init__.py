@@ -70,7 +70,7 @@ class MainWidget(QtGui.QWidget):
 class VisualizerClosedException( Exception ):
     pass
 
-class Visualizer:
+class Plugin:
     def __init__(self, game):
         """
             Initialize a visualizer with an instance of Game.
