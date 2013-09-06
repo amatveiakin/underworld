@@ -4,6 +4,7 @@ from PyQt4 import QtGui, QtCore
 import copy
 import time
 import sys
+import argparse
 
 def makeRect(x, y, cellSize):
     return QtCore.QRect(x * cellSize, y * cellSize, cellSize, cellSize)
@@ -70,12 +71,24 @@ class MainWidget(QtGui.QWidget):
 class VisualizerClosedException( Exception ):
     pass
 
+class ArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        self.print_usage( )
+        sys.stderr.write("replay plugin error: " + message + "\n")
+        sys.exit(2)
+
 class Plugin:
     def __init__(self, game, args):
         """
             Initialize a visualizer with an instance of Game.
             sets onTurnEnd binding, spawns a GUI thread
         """
+        parser = ArgumentParser(prog="")
+        parser.add_argument("--turn-time", "-t", 
+                            type=float, 
+                            help="delay between turns in seconds(%(default)f)",
+                            default=0.1)
+        self._options = parser.parse_args(args.split( ))
         self._readyEvent = threading.Event( )
         self.game = game
         self.objects = copy.deepcopy(self.game.objects)
@@ -89,7 +102,7 @@ class Plugin:
         """
         self.objects = copy.deepcopy(self.game.objects)
         self._app.postEvent(self._widget, QtCore.QEvent(QtCore.QEvent.User + 1))
-        time.sleep(0.1)
+        time.sleep(self._options.turn_time)
         if not self._thread.is_alive():
             raise VisualizerClosedException()
 
