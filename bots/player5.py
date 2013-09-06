@@ -1,19 +1,19 @@
 import sys
 import random
-whoareyou = sys.stdin.readline()
-sys.stdout.write("crayfish\n")
-sys.stdout.flush( )
-number = 0
-s = sys.stdin.readline( )
-words = s.split( )
-SizeX = int(words[0])
-SizeY = int(words[1])
-nPlayers = int(words[2])
-iPlayer = int(words[3])
+try:
+    whoareyou = sys.stdin.readline()
+    sys.stdout.write("crayfish\n")
+    sys.stdout.flush( )
+    number = 0
+    s = sys.stdin.readline( )
+    words = s.split( )
+    SizeX = int(words[0])
+    SizeY = int(words[1])
+    nPlayers = int(words[2])
+    iPlayer = int(words[3])
 
-d = iPlayer == 0
-while True:
-    try:
+    d = iPlayer == 0
+    while True:
         s = sys.stdin.readline( )
         while s != "end\n":
             words = s.split( )
@@ -29,5 +29,5 @@ while True:
         sys.stdout.write("build %d %d F\n" % (random.randint(0, SizeX - 1), random.randint(0, SizeY - 1)))
         sys.stdout.write("end\n")
         sys.stdout.flush( )
-    except:
-        break
+except:
+    pass
