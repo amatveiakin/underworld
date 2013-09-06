@@ -71,7 +71,7 @@ class VisualizerClosedException( Exception ):
     pass
 
 class Plugin:
-    def __init__(self, game):
+    def __init__(self, game, args):
         """
             Initialize a visualizer with an instance of Game.
             sets onTurnEnd binding, spawns a GUI thread

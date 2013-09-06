@@ -136,17 +136,7 @@ class Client:
         ''' String representation - just the player's id '''
         return str(self.iPlayer + 1)
 
-def main():
-    game = gameengine.Game()
-    options = parseOptions( )
-    fGame = open(options.game)
-    gameDesc = json.load(fGame)
-    fGame.close( )
-
-    playerList = []
-    playerNames = gameDesc["players"]
-    playerNum = len(playerNames)
-
+def runGame(game, playerList):
     thinkingSetLock = threading.RLock( )
     thinkingSet = set( )
     everyoneReadyEvent = threading.Event( )
@@ -157,23 +147,13 @@ def main():
            if thinkingSet == set( ):
                everyoneReadyEvent.set( )
 
-    for (playerExeFile, iPlayer) in zip(playerNames, range(playerNum)):
-        playerList.append(Client(playerExeFile, iPlayer, onClientStopThinking))
-
-    game.setClients(playerList, gameDesc)
-    if options.plugin != "":
-        try:
-            pluginModule = importlib.import_module("plugins." + options.plugin)
-            v = pluginModule.Plugin(game)
-        except:
-            print("Could'n initialize the plugin")
-            raise
-    initialMessages = game.initialMessages()
     thinkingSet = set(playerList)
-    for (player, message) in zip(playerList, initialMessages):
+    for player in playerList:
+        player.onReady = onClientStopThinking
         player.process.stdin.write(config.handshakeSyn + b"\n")
         player.run()
 
+    initialMessages = game.initialMessages()
     everyoneReadyEvent.wait(config.turnDurationInSec)
     with MutexLocker(thinkingSetLock):
         thinkingSet = set( )
@@ -217,6 +197,34 @@ def main():
         if not somebodyStillPlays:
             print("Game over!")
             return
+def main():
+    game = gameengine.Game()
+    options = parseOptions( )
+    fGame = open(options.game)
+    gameDesc = json.load(fGame)
+    fGame.close( )
 
+    playerList = []
+    playerNames = gameDesc["players"]
+    playerNum = len(playerNames)
+
+
+    for (playerExeFile, iPlayer) in zip(playerNames, range(playerNum)):
+        playerList.append(Client(playerExeFile, iPlayer))
+
+    game.setClients(playerList, gameDesc)
+    plugin = None
+    if options.plugin != "":
+        try:
+            pluginModule = importlib.import_module("plugins." + options.plugin)
+            plugin = pluginModule.Plugin(game, options.plugin_args)
+        except:
+            print("Could'n initialize the plugin")
+            raise
+    if hasattr(plugin, "__enter__"):
+        with plugin:
+            runGame(game, playerList)
+    else:
+        runGame(game, playerList)
 if __name__ == "__main__":
     main()
