@@ -102,22 +102,25 @@ class Client:
         ''' Player's thread main function.
             Handshakes, then repeatedly performs the IO while player is in play.
         '''
-        self.handshake()
-        while True:
-            if not PlayerState.inPlay(self.state):
-                break
-            self.startThinkingEvent.wait( )
-            receivedMessage = self.process.stdout.readline(config.maxRecvLineLen)
-            with MutexLocker(self.lock):
-                if receivedMessage.strip() == b"end":
-                    self.state = PlayerState.READY
-                else:
-                    if not self._isMessageSecure(receivedMessage):
-                        self.reason = "Spam protection"
-                        self.state = PlayerState.KICKED
-                        break
-                    self.messageFromPlayer += receivedMessage
-                    self.receivedLinesNo += 1
+        try:
+            self.handshake()
+            while True:
+                if not PlayerState.inPlay(self.state):
+                    break
+                self.startThinkingEvent.wait( )
+                receivedMessage = self.process.stdout.readline(config.maxRecvLineLen)
+                with MutexLocker(self.lock):
+                    if receivedMessage.strip() == b"end":
+                        self.state = PlayerState.READY
+                    else:
+                        if not self._isMessageSecure(receivedMessage):
+                            self.reason = "Spam protection"
+                            self.state = PlayerState.KICKED
+                            break
+                        self.messageFromPlayer += receivedMessage
+                        self.receivedLinesNo += 1
+        except:
+            pass
     def _isMessageSecure(self, message):
         return self.receivedLinesNo < config.maxRecvLinesNo and \
             len(self.messageFromPlayer) + len(message) < config.maxRecvSize and \
@@ -208,7 +211,6 @@ def main():
     playerNames = gameDesc["players"]
     playerNum = len(playerNames)
 
-
     for (playerExeFile, iPlayer) in zip(playerNames, range(playerNum)):
         playerList.append(Client(playerExeFile, iPlayer))
 
@@ -219,7 +221,8 @@ def main():
             pluginModule = importlib.import_module("plugins." + options.plugin)
             plugin = pluginModule.Plugin(game, options.plugin_args)
         except:
-            print("Could'n initialize the plugin")
+            for client in playerList:
+                client.process.kill( )
             raise
     if hasattr(plugin, "__enter__"):
         with plugin:
