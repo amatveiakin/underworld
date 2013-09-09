@@ -22,7 +22,6 @@ class Plugin:
             self.outputFile = io.TextIOWrapper(gzip.GzipFile(filename=self._options.output_file, mode="w"))
         else:
             self.outputFile = open(self._options.output_file, "w")
-        self.outputFile.write('{ "turns": [\n')
         game.onTurnEnd = self._onTurnEnd
     def _onTurnEnd(self):
         d = {
@@ -31,10 +30,8 @@ class Plugin:
             "state": [str(p.state) for p in self._game.clients],
             "objects": list(map(Plugin._getObjectDict, self._game.objects))
         }
-        if (self._game.turn > 1):
-            self.outputFile.write(",")
-            self.outputFile.write("\n")
         json.dump(d, self.outputFile)
+        self.outputFile.write("\n")
     def _getObjectDict(o):
         d = {"x": o.x, "y": o.y, "owner": o.owner, "type": o.CharRepr}
         if isinstance(o, gameengine.Game.ObjectWithHitpoints):
@@ -43,5 +40,4 @@ class Plugin:
     def __enter__(self):
         pass
     def __exit__(self, exc_type, exc_value, traceback):
-        self.outputFile.write("\n] }\n")
         self.outputFile.close( )
