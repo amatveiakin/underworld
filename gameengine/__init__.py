@@ -101,8 +101,8 @@ class Game:
         self._resolveIncome( )
         self._resolveMovement( )
         self._resolveBattle( )
-        self._resolveBuilding( )
         self._resolveSpawning( )
+        self._resolveBuilding( )
         self._checkWinConditions( )
         self._cleanup( )
         self.turn += 1
