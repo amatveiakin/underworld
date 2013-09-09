@@ -16,7 +16,7 @@ def _resolveBattle(self):
     dead = set( ) 
     for obj in self.objects:
         if obj.CanAttack and obj.enemies:
-            perUnit = obj.DamageToUnits / len(obj.enemies)
+            perUnit = int(obj.DamageToUnits / len(obj.enemies) + 0.5)
             for enemy in obj.enemies:
                 enemy.hitpoints -= perUnit
                 if enemy.hitpoints <= 0:
