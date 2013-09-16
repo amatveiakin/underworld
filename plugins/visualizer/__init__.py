@@ -1,14 +1,22 @@
 import gameengine
 import threading
 from PyQt4 import QtGui, QtCore
+from PyQt4.Qt import Qt
 import copy
 import time
 import sys
 import argparse
 
+minZoomExp = -20.
+maxZoomExp = 10.
+defaultZoom = -5.
+
 cellSize = 64
 hBarBorder = 6
 hBarHeight = 6
+
+def bound(minVal, current, maxVal):
+    return max(min(current, maxVal), minVal)
 
 class VisualizerWidget(QtGui.QWidget):
     PlayerColors = [ QtGui.QColor(255, 0, 0), QtGui.QColor(0, 0, 255),
@@ -17,19 +25,20 @@ class VisualizerWidget(QtGui.QWidget):
     def __init__(self, parent, visualizer):
         super(VisualizerWidget, self).__init__(parent)
         self._visualizer = visualizer
-        self.transform = QtGui.QTransform()
+        self.zoomExp = defaultZoom
+        self.shift = QtCore.QPointF(0., 0.)
+        self.isDragging = False
+    def zoomFactor(zoomExp):
+        return pow(1.1, zoomExp)
+    def currentTransform(self):
+        zoom = VisualizerWidget.zoomFactor(self.zoomExp)
+        return QtGui.QTransform(zoom, 0., 0., zoom, self.shift.x(), self.shift.y())
     def paintEvent(self, event):
         objects = self._visualizer.objects
         painter = QtGui.QPainter()
         painter.begin(self)
-        # TODO: instead allow user to scroll and zoom
-        self.transform = QtGui.QTransform()
-        size = self.size()
-        maxCellWidth = size.width() / self._visualizer.game.SizeX
-        maxCellHeight = size.height() / self._visualizer.game.SizeY
-        scaleFactor = min(maxCellWidth, maxCellHeight) / cellSize
-        self.transform.scale(scaleFactor, scaleFactor)
-        painter.setTransform(self.transform)
+        painter.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.TextAntialiasing)
+        painter.setTransform(self.currentTransform())
         painter.setFont(QtGui.QFont('', cellSize / 2))
         for o in objects:
             if o.owner >= 0:
@@ -44,7 +53,9 @@ class VisualizerWidget(QtGui.QWidget):
             if isinstance(o, gameengine.Game.ObjectWithHitpoints):
                 hBarGreenRect = copy.copy(hBarRect)
                 hBarGreenRect.setWidth(hBarRect.width() * o.hitpoints / o.MaxHitpoints)
-                painter.setPen(QtGui.QColor(QtCore.Qt.black))
+                pen = QtGui.QPen(QtGui.QColor(QtCore.Qt.black))
+                pen.setWidth(1)
+                painter.setPen(pen)
                 painter.setBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.red)))
                 painter.drawRect(hBarRect)
                 painter.setBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.green)))
@@ -52,6 +63,25 @@ class VisualizerWidget(QtGui.QWidget):
             painter.setPen(self.PlayerColors[o.owner])
             painter.drawText(textRect, QtCore.Qt.AlignCenter, o.CharRepr)
         painter.end()
+    def wheelEvent(self, event):
+        oldZoom = VisualizerWidget.zoomFactor(self.zoomExp)
+        self.zoomExp += event.delta() / 120.
+        self.zoomExp = bound(minZoomExp, self.zoomExp, maxZoomExp)
+        newZoom = VisualizerWidget.zoomFactor(self.zoomExp)
+        self.shift += (event.pos() - self.shift) * (1. - newZoom / oldZoom)
+        self.update()
+    def mousePressEvent(self, event):
+        if event.button() == Qt.RightButton:
+            self.isDragging = True
+            self.dragStart = event.pos()
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.RightButton:
+            self.isDragging = False
+    def mouseMoveEvent(self, event):
+        if self.isDragging:
+            self.shift += event.pos() - self.dragStart
+            self.dragStart = event.pos()
+            self.update()
 
 class MainWidget(QtGui.QWidget):
     def __init__(self, visualizer):
@@ -60,7 +90,7 @@ class MainWidget(QtGui.QWidget):
         self.layout.setMargin(0)
         self.layout.addWidget(VisualizerWidget(self, visualizer))
         self.setLayout(self.layout)
-        self.setGeometry(300, 300, 280, 170)
+        self.setGeometry(120, 120, 480, 480)
         self.setWindowTitle('Underworld')
         self.show()
     def event(self, ev):
