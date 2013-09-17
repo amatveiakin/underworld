@@ -21,7 +21,7 @@
 import playerstate as PlayerState
 
 class Game:
-    from .celldefs import Cell, Object, ObjectWithHitpoints, Building, Farm, Castle, Barracks, Unit, Warrior, Wall, ObjTypes, ObjTypeDict
+    from .celldefs import Cell, Object, Building, Farm, Castle, Barracks, Unit, Warrior, Wall, ObjTypes, ObjTypeDict
 
     def __init__(self):
         self.onTurnEnd = None 
@@ -147,7 +147,7 @@ class Game:
         '''
             Returns a string representing info about a cell @(x, y)
         '''
-        if isinstance(obj, Game.ObjectWithHitpoints):
+        if obj.TakesDamage:
             return "%d %d %d %s %d" % (obj.x, obj.y, obj.owner, obj.CharRepr, obj.hitpoints)
         else:
             return "%d %d %d %s" % (obj.x, obj.y, obj.owner, obj.CharRepr)

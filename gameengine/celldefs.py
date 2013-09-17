@@ -5,22 +5,18 @@ class Cell:
         self.moveCandidates = []
         
 class Object(Cell):
-    TakesDamage = False
+    TakesDamage = True
     VisionRange = 3
     CanBeBuilt = True
     def __init__(self):
         super().__init__()
+        if self.TakesDamage:
+            self.hitpoints = self.MaxHitpoints
         self.newPosition = None
         self.willMove = None
         self.hasSpawnRequest = False
 
-class ObjectWithHitpoints(Object):
-    TakesDamage = True
-    def __init__(self): 
-        super().__init__()
-        self.hitpoints = self.MaxHitpoints
-
-class Building (ObjectWithHitpoints):
+class Building (Object):
     CanMove = False
     CanAttack = False
 
@@ -39,7 +35,7 @@ class Barracks (Building):
     Cost = 1500
     CharRepr = "B"
 
-class Unit (ObjectWithHitpoints):
+class Unit (Object):
     CanMove = True
     CanAttack = True
 
@@ -51,7 +47,8 @@ class Warrior (Unit):
     CharRepr = "W"
     AttackRange = 2
 
-class Wall(Object):
+class Wall(Building):
+    TakesDamage = False
     CanBeBuilt = False
     CanAttack = False
     CanMove = False
