@@ -50,7 +50,7 @@ class VisualizerWidget(QtGui.QWidget):
             hBarRect.setHeight(hBarHeight)
             textRect = cellRect
             textRect.setTop(hBarRect.bottom())
-            if isinstance(o, gameengine.Game.ObjectWithHitpoints):
+            if o.TakesDamage:
                 hBarGreenRect = copy.copy(hBarRect)
                 hBarGreenRect.setWidth(hBarRect.width() * o.hitpoints / o.MaxHitpoints)
                 pen = QtGui.QPen(QtGui.QColor(QtCore.Qt.black))

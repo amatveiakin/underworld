@@ -34,7 +34,7 @@ class Plugin:
         self.outputFile.write("\n")
     def _getObjectDict(o):
         d = {"x": o.x, "y": o.y, "owner": o.owner, "type": o.CharRepr}
-        if isinstance(o, gameengine.Game.ObjectWithHitpoints):
+        if o.TakesDamage:
             d["hitpoints"] = o.hitpoints
         return d
     def __enter__(self):
