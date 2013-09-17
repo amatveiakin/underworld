@@ -37,20 +37,34 @@ class VisualizerWidget(QtGui.QWidget):
         objects = self._visualizer.objects
         painter = QtGui.QPainter()
         painter.begin(self)
-        painter.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.TextAntialiasing)
+        painter.setRenderHints(  QtGui.QPainter.Antialiasing | QtGui.QPainter.TextAntialiasing
+                               | QtGui.QPainter.SmoothPixmapTransform | QtGui.QPainter.HighQualityAntialiasing)
+        painter.fillRect(self.rect(), QtGui.QColor.fromRgbF(0.5, 0.5, 0.5))
         painter.setTransform(self.currentTransform())
         painter.setFont(QtGui.QFont('', cellSize / 2))
+        worldRect = QtCore.QRectF(0., 0., self._visualizer.game.SizeX * cellSize, self._visualizer.game.SizeY * cellSize)
+        #backgroundBrush = QtGui.QBrush(QtGui.QPixmap('graphics/dirt.jpg'))
+        #backgroundBrush.setTransform(QtGui.QTransform.fromScale(0.3, 0.3))
+        backgroundBrush = QtGui.QBrush(QtGui.QColor.fromRgbF(0.9, 0.9, 0.9))
+        painter.fillRect(worldRect, backgroundBrush)
         for o in objects:
             if o.owner >= 0:
                 mainColor = self.PlayerColors[o.owner]
             else:
                 mainColor = self.NeutralColor
             cellRect = QtCore.QRect(o.x * cellSize, o.y * cellSize, cellSize, cellSize)
-            hBarRect = cellRect.adjusted(hBarBorder, hBarBorder, -hBarBorder, -hBarBorder)
-            hBarRect.setHeight(hBarHeight)
-            textRect = cellRect
-            textRect.setTop(hBarRect.bottom())
+            textRect = copy.copy(cellRect)
+            if isinstance(o, gameengine.Game.Building):
+                pen = QtGui.QPen(self.PlayerColors[o.owner])
+                pen.setWidth(1)
+                painter.setPen(pen)
+                fillColor = copy.copy(self.PlayerColors[o.owner])
+                fillColor.setHsvF(fillColor.hueF(), fillColor.saturationF() * 0.5, fillColor.valueF(), 0.2)
+                painter.setBrush(fillColor)
+                painter.drawRect(cellRect)
             if o.TakesDamage:
+                hBarRect = cellRect.adjusted(hBarBorder, hBarBorder, -hBarBorder, -hBarBorder)
+                hBarRect.setHeight(hBarHeight)
                 hBarGreenRect = copy.copy(hBarRect)
                 hBarGreenRect.setWidth(hBarRect.width() * o.hitpoints / o.MaxHitpoints)
                 pen = QtGui.QPen(QtGui.QColor(QtCore.Qt.black))
@@ -60,7 +74,8 @@ class VisualizerWidget(QtGui.QWidget):
                 painter.drawRect(hBarRect)
                 painter.setBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.green)))
                 painter.drawRect(hBarGreenRect)
-            painter.setPen(self.PlayerColors[o.owner])
+                textRect.setTop(hBarRect.bottom())
+            painter.setPen(self.PlayerColors[o.owner].darker(125))
             painter.drawText(textRect, QtCore.Qt.AlignCenter, o.CharRepr)
         painter.end()
     def wheelEvent(self, event):
