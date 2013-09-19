@@ -5,6 +5,7 @@ class Cell:
         self.moveCandidates = []
         
 class Object(Cell):
+    Income = 0
     TakesDamage = True
     VisionRange = 3
     CanBeBuilt = True
@@ -29,6 +30,7 @@ class Farm (Building):
     MaxHitpoints = 1000
     Cost = 1000
     CharRepr  = "F"
+    Income = 50
 
 class Barracks (Building):
     MaxHitpoints = 1500

@@ -1,7 +1,7 @@
 {
-    "map": "maps/map1.txt", 
+    
     "players": ["python3 bots/player5.py", "python3 bots/player5.py"],
-    "money": [3000, 3000],
+    "money": 3000,
     "sizex": 10,
     "sizey": 10,
     "objects": [{"x": 0, "y": 0, "type": "C", "owner": 0},

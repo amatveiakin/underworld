@@ -36,8 +36,8 @@ def _resolveSpawning(self):
             cell = self.field[y][x]
             if cell in self.objects:
                 continue
-            if self.clients[iPlayer].money >= objType.Cost:
-                self.clients[iPlayer].money -= objType.Cost
+            if self.players[iPlayer].money >= objType.Cost:
+                self.players[iPlayer].money -= objType.Cost
                 newObj = objType( )
                 newObj.owner = iPlayer
                 newObj.x, newObj.y = (x, y)

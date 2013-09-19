@@ -103,23 +103,27 @@ class PlayerStatTableModel(QtCore.QAbstractTableModel):
     def __init__(self, parent, visualizer):
         super(PlayerStatTableModel, self).__init__(parent)
         self._visualizer = visualizer
-        self._player = self._visualizer.game.clients
+        self._players = self._visualizer.game.players
+        self._playersData = [p.getPlayerStats() for p in self._players]
+        self._attributeNames = [t[0] for t in self._players[0].getPlayerStats( )]
+
     def columnCount(self, parent = QtCore.QModelIndex()):
-        return len(self._player)
+        return len(self._players)
     def headerData(self, section, orientation, role = Qt.DisplayRole):
         if role == Qt.DisplayRole:
             if orientation == Qt.Horizontal:
-                return "Player " + str(section)
+                return "[%d] %s" % (section, self._players[section].name)
             else:
-                return "Money"
+                return self._attributeNames[section]
         return None
     def data(self, index, role = Qt.DisplayRole):
         if role == Qt.DisplayRole:
-            return self._player[index.column()].money
+            return self._playersData[index.column( )][index.row( )][1]
         return None
     def rowCount(self, parent = QtCore.QModelIndex()):
-        return 1 # TODO
-    def newTurn(self):
+        return len(self._attributeNames)
+    def endTurn(self):
+        self._playersData = [p.getPlayerStats() for p in self._players]
         self.dataChanged.emit(self.index(0, 0), self.index(self.rowCount() - 1, self.columnCount() - 1))
 
 class MainWidget(QtGui.QWidget):
@@ -129,7 +133,7 @@ class MainWidget(QtGui.QWidget):
         playerStatTableModel = PlayerStatTableModel(self, visualizer)
         playerStatTableView = QtGui.QTableView(self)
         playerStatTableView.setModel(playerStatTableModel)
-        self.turnEnded.connect(playerStatTableModel.newTurn)
+        self.turnEnded.connect(playerStatTableModel.endTurn)
         visualizerWidget = VisualizerWidget(self, visualizer)
         visualizerWidget.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         self.layout = QtGui.QHBoxLayout()
