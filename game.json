@@ -1,6 +1,6 @@
 {
     "map": "maps/map1.txt", 
-    "players": ["python3 bots/player5.py", "python3 bots/rsleep.py"], 
+    "players": ["python3 bots/player5.py", "python3 bots/player5.py"],
     "money": [3000, 3000],
     "sizex": 10,
     "sizey": 10,
