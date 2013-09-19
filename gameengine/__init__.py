@@ -32,7 +32,7 @@ class Game:
     def setClients(self, clients, gameDesc):
         ''' initializes the game with specified list of clients '''
         self.nPlayers = len(clients)
-        self.clients = clients
+        self.players = [ Game.Player(c, self, gameDesc["money"]) for c in clients ]
         self.turn = 0
         self.objects = set( )
         self.SizeX = gameDesc["sizex"]
@@ -48,13 +48,9 @@ class Game:
                 newObj.owner = o["owner"]
                 self.field[newObj.y][newObj.x] = newObj
                 self.objects.add(newObj)
-            for iPlayer in range(len(clients)):
-                self.clients[iPlayer].money = gameDesc["money"][iPlayer]
         except Exception as e:
             raise e
                 
-
-
     def processTurn(self, playerMoves):
         ''' 
             Process inputs from all clients.
@@ -62,7 +58,7 @@ class Game:
             returns list of nPlayers tuples (new playerState, message to player)
         '''
         for iPlayer in range(self.nPlayers):
-            if not PlayerState.inPlay(self.clients[iPlayer].state) or  \
+            if not PlayerState.inPlay(self.players[iPlayer].client.state) or  \
                 not playerMoves[iPlayer]:
                 continue
             linesFromPlayer = playerMoves[iPlayer].strip( ).split("\n")
@@ -103,15 +99,18 @@ class Game:
         self._resolveBattle( )
         self._resolveSpawning( )
         self._resolveBuilding( )
-        self._checkWinConditions( )
+        winStates = self._checkWinConditions( )
         self._cleanup( )
         self.turn += 1
         res = []
         for iPlayer in range(self.nPlayers):
-            if PlayerState.inPlay(self.clients[iPlayer].state):
-                res.append((PlayerState.THINKING, self.getPlayerInfoString(iPlayer) + "end\n"))
+            if PlayerState.inPlay(self.players[iPlayer].client.state):
+                if not winStates[iPlayer] is None:
+                    res.append((winStates[iPlayer], "gg\nend\n"))
+                else:
+                    res.append((PlayerState.THINKING, self.getPlayerInfoString(iPlayer) + "end\n"))
             else:
-                res.append((self.clients[iPlayer].state, "end\n"))
+                res.append((self.players[iPlayer].clients.state, "end\n"))
         if callable(self.onTurnEnd):
             try:
                 self.onTurnEnd( )
@@ -152,20 +151,21 @@ class Game:
         else:
             return "%d %d %d %s" % (obj.x, obj.y, obj.owner, obj.CharRepr)
     def _resolveIncome(self):
-        for o in self.objects:
-            if o.owner >=0 and isinstance(o, Game.Farm):
-                self.clients[o.owner].money += 50
+        for p in self.players:
+            p.money += p.getIncome( )
 
     def _checkWinConditions(self):
         alivePlayers = set( )
         for obj in self.objects:
             if obj.owner >= 0:
                 alivePlayers.add(obj.owner)
+        newStates = [None] * self.nPlayers
         for iPlayer in range(self.nPlayers):
-            if not iPlayer in alivePlayers and PlayerState.inPlay(self.clients[iPlayer].state):
-                self.clients[iPlayer].state = PlayerState.LOST
+            if not iPlayer in alivePlayers and PlayerState.inPlay(self.players[iPlayer].client.state):
+                newStates[iPlayer] = PlayerState.LOST
         if len(alivePlayers) == 1:
-            self.clients[alivePlayers.pop( )].state = PlayerState.WON
+            newStates[alivePlayers.pop( )] = PlayerState.WON
+        return newStates
         
     def _cleanup(self):
         '''
@@ -188,3 +188,4 @@ class Game:
     from .battle import _resolveBattle
     from .building import _setBuildRequest, _resolveBuilding, _canBeBuilt
     from .spawning import _setSpawnRequest, _resolveSpawning, _canSpawn
+    from .player import Player

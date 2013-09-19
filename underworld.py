@@ -87,6 +87,7 @@ class Client:
         self.messageFromPlayer = b""
         self.receivedLinesNo = 0
         self.reason = ""
+        self.exeName = exeName
     def handshake(self):
         ''' Perform handshake. If it fails, kick the player '''
         answer = self.process.stdout.readline().strip()
