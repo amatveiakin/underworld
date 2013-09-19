@@ -99,12 +99,45 @@ class VisualizerWidget(QtGui.QWidget):
             self.dragStart = event.pos()
             self.update()
 
+class PlayerStatTableModel(QtCore.QAbstractTableModel):
+    def __init__(self, parent, visualizer):
+        super(PlayerStatTableModel, self).__init__(parent)
+        self._visualizer = visualizer
+        self._player = self._visualizer.game.clients
+    def columnCount(self, parent = QtCore.QModelIndex()):
+        return len(self._player)
+    def headerData(self, section, orientation, role = Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return "Player " + str(section)
+            else:
+                return "Money"
+        return None
+    def data(self, index, role = Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._player[index.column()].money
+        return None
+    def rowCount(self, parent = QtCore.QModelIndex()):
+        return 1 # TODO
+    def newTurn(self):
+        self.dataChanged.emit(self.index(0, 0), self.index(self.rowCount() - 1, self.columnCount() - 1))
+
 class MainWidget(QtGui.QWidget):
+    turnEnded = QtCore.pyqtSignal()
     def __init__(self, visualizer):
         super( ).__init__( )
+        playerStatTableModel = PlayerStatTableModel(self, visualizer)
+        playerStatTableView = QtGui.QTableView(self)
+        playerStatTableView.setModel(playerStatTableModel)
+        self.turnEnded.connect(playerStatTableModel.newTurn)
+        visualizerWidget = VisualizerWidget(self, visualizer)
+        visualizerWidget.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         self.layout = QtGui.QHBoxLayout()
         self.layout.setMargin(0)
-        self.layout.addWidget(VisualizerWidget(self, visualizer))
+        self.layout.addWidget(visualizerWidget)
+        self.layout.addWidget(playerStatTableView)
+        self.layout.setStretch(0, 2)
+        self.layout.setStretch(1, 1)
         self.setLayout(self.layout)
         self.setGeometry(120, 120, 480, 480)
         self.setWindowTitle('Underworld')
@@ -112,6 +145,7 @@ class MainWidget(QtGui.QWidget):
     def event(self, ev):
         if ev.type( ) == QtCore.QEvent.User + 1:
             self.update( )
+            self.turnEnded.emit()
         return super(MainWidget, self).event(ev)
 
 class VisualizerClosedException( Exception ):
