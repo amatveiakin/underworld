@@ -52,7 +52,7 @@ class VisualizerWidget(QtGui.QWidget):
                 mainColor = self.PlayerColors[o.owner]
             else:
                 mainColor = self.NeutralColor
-            cellRect = QtCore.QRect(o.x * cellSize, o.y * cellSize, cellSize, cellSize)
+            cellRect = QtCore.QRectF(o.x * cellSize, o.y * cellSize, cellSize, cellSize)
             textRect = copy.copy(cellRect)
             if isinstance(o, gameengine.Game.Building):
                 pen = QtGui.QPen(self.PlayerColors[o.owner])
@@ -61,7 +61,8 @@ class VisualizerWidget(QtGui.QWidget):
                 fillColor = copy.copy(self.PlayerColors[o.owner])
                 fillColor.setHsvF(fillColor.hueF(), fillColor.saturationF() * 0.5, fillColor.valueF(), 0.2)
                 painter.setBrush(fillColor)
-                painter.drawRect(cellRect)
+                buildingRect = cellRect.adjusted(0.5, 0.5, -0.5, -0.5)
+                painter.drawRect(buildingRect)
             if o.TakesDamage:
                 hBarRect = cellRect.adjusted(hBarBorder, hBarBorder, -hBarBorder, -hBarBorder)
                 hBarRect.setHeight(hBarHeight)
