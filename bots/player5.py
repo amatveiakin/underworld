@@ -12,12 +12,11 @@ try:
     nPlayers = int(words[2])
     iPlayer = int(words[3])
 
-    d = iPlayer == 0
     while True:
         s = sys.stdin.readline( )
         while s != "end\n":
             words = s.split( )
-            if (d and words[2] == "0") or (not d and words[2] == "1"):
+            if iPlayer == int(words[2]):
                 myposx = int(words[0])
                 myposy = int(words[1])
                 direction = random.choice(['E','W','N','S']) 
