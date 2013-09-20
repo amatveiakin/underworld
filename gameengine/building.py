@@ -35,8 +35,6 @@ def _resolveBuilding(self):
                 continue
             if self.players[iPlayer].money >= objType.Cost:
                 self.players[iPlayer].money -= objType.Cost
-                newObj = objType( )
-                newObj.owner = iPlayer
-                newObj.x, newObj.y = (x, y)
+                newObj = objType(x, y, iPlayer)
                 self.field[y][x] = newObj
                 self.objects.add(newObj)
