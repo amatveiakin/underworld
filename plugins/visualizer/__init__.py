@@ -143,7 +143,7 @@ class MainWidget(QtGui.QWidget):
         self.layout.setStretch(0, 2)
         self.layout.setStretch(1, 1)
         self.setLayout(self.layout)
-        self.setGeometry(120, 120, 480, 480)
+        self.setGeometry(120, 120, 800, 600)
         self.setWindowTitle('Underworld')
         self.show()
     def event(self, ev):
