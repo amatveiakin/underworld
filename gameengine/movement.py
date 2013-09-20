@@ -6,25 +6,19 @@ def _setMoveRequest(self, x, y, newx, newy):
         Stay calm: the object isn't moving anywhere yet.
     '''
     self.field[y][x].newPosition = (newx, newy)
-
-    if self.field[newy][newx] is None:
-        self.field[newy][newx] = Cell( )
-        self._cellsToCleanup.add((newx, newy))
-    self.field[newy][newx].moveCandidates.append((x,y))
+    self._moveRequests[(newx,newy)] = self._moveRequests.get((newx, newy), 0) + 1
 def _resolveMovement(self):
     '''
         Performs collisions resolution and does actual moving of units
     '''
     def passable(startx, starty):
-        def passableRec(x, y, check=True):
+        def passableRec(x, y, firstIteration=False):
             cell = self.field[y][x]
-            if check and (x, y) == (startx, starty):
+            if not firstIteration and (x, y) == (startx, starty):
                 return True
-            if cell is None:
-                return True
-            if len(cell.moveCandidates) >= 2:
+            if self._moveRequests.get((x, y), 0) >= 2:
                 return False
-            if not (cell in self.objects):
+            if cell is None:
                 return True
             if not (cell.willMove is None):
                 return cell.willMove
@@ -37,10 +31,10 @@ def _resolveMovement(self):
             else:
                 cell.willMove = False
                 return False
-        return passableRec(startx, starty, False)
+        return passableRec(startx, starty, True)
     def pushRec(x, y):
         cell = self.field[y][x]
-        if cell in self.objects:
+        if not (cell is None):
             (newx, newy) = cell.newPosition
             pushRec(newx, newy)
             self.field[newy][newx] = cell

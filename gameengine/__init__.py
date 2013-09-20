@@ -24,9 +24,10 @@ class Game:
     from .celldefs import Cell, Object, Building, Farm, Castle, Barracks, Unit, Warrior, Wall, ObjTypes, ObjTypeDict
 
     def __init__(self):
-        self.onTurnEnd = None 
+        self.onTurnEnd = None
         self._buildRequests = dict( )
         self._spawnRequests = dict( )
+        self._moveRequests = dict( )
         self._cellsToCleanup = set()
 
     def setClients(self, clients, gameDesc):
@@ -43,18 +44,16 @@ class Game:
         try:
             for o in gameDesc["objects"]:
                 objType = Game.ObjTypeDict[o["type"]]
-                newObj = objType()
-                (newObj.x, newObj.y) = (o["x"], o["y"])
-                newObj.owner = o["owner"]
+                newObj = objType(o["x"], o["y"], o["owner"])
                 self.field[newObj.y][newObj.x] = newObj
                 self.objects.add(newObj)
         except Exception as e:
             raise e
-                
+
     def processTurn(self, playerMoves):
-        ''' 
+        '''
             Process inputs from all clients.
-            playerMoves is a list with nPlayers items, each of which is a string with a player's move 
+            playerMoves is a list with nPlayers items, each of which is a string with a player's move
             returns list of nPlayers tuples (new playerState, message to player)
         '''
         for iPlayer in range(self.nPlayers):
@@ -93,7 +92,7 @@ class Game:
                 except Exception as e:
                     # just ignore incorrect moves
                     pass
-                
+
         self._resolveIncome( )
         self._resolveMovement( )
         self._resolveBattle( )
@@ -114,7 +113,7 @@ class Game:
         if callable(self.onTurnEnd):
             try:
                 self.onTurnEnd( )
-            except: 
+            except:
                 # kick everyone: the interactive UI is dead
                 res = [ (PlayerState.KICKED, "" ) ] * self.nPlayers
         return res
@@ -128,7 +127,7 @@ class Game:
             res.append(("%d %d %d %d" % (self.SizeX, self.SizeY, self.nPlayers, iPlayer)) + \
                 "\n" + self.getPlayerInfoString(iPlayer) + "end\n")
         return res
-            
+
     def isPlayerNumAcceptable(self, nPlayers):
         return nPlayers in [2, 4]
 
@@ -166,7 +165,7 @@ class Game:
         if len(alivePlayers) == 1:
             newStates[alivePlayers.pop( )] = PlayerState.WON
         return newStates
-        
+
     def _cleanup(self):
         '''
             Cleans up intermediate turn info about battles, movements, etc.
@@ -178,11 +177,11 @@ class Game:
         for obj in self.objects:
             obj.willMove = None
             obj.newPosition = None
-            obj.moveCandidates = []
             obj.hasSpawnRequest = False
         self._cellsToCleanup = set()
         self._buildRequests = dict( )
         self._spawnRequests = dict( )
+        self._moveRequests = dict( )
     from .movement import _resolveMovement, _setMoveRequest
     from .util import _applyDirection, _isInside, _neighbourhood, _neighbours
     from .battle import _resolveBattle

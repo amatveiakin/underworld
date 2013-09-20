@@ -1,21 +1,22 @@
 # partial Game class
 
 class Cell:
-    def __init__(self):
-        self.moveCandidates = []
+    def __init__(self, x, y):
+        (self.x, self.y) = (x, y)
         
 class Object(Cell):
     Income = 0
     TakesDamage = True
     VisionRange = 3
     CanBeBuilt = True
-    def __init__(self):
-        super().__init__()
+    def __init__(self, x, y, owner):
+        super().__init__(x, y)
         if self.TakesDamage:
             self.hitpoints = self.MaxHitpoints
         self.newPosition = None
         self.willMove = None
         self.hasSpawnRequest = False
+        self.owner = owner
 
 class Building (Object):
     CanMove = False
@@ -54,9 +55,9 @@ class Wall(Building):
     CanBeBuilt = False
     CanAttack = False
     CanMove = False
-    def __init__(self):
-        super().__init__( )
-        self.owner = -1
+    def __init__(self, x, y, owner):
+        assert(owner == -1)
+        super().__init__(x, y, owner)
     CharRepr = "#"
 
 ObjTypes = [Castle, Farm, Barracks, Warrior, Wall]
