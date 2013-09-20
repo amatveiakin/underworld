@@ -109,7 +109,7 @@ class Game:
                 else:
                     res.append((PlayerState.THINKING, self.getPlayerInfoString(iPlayer) + "end\n"))
             else:
-                res.append((self.players[iPlayer].clients.state, "end\n"))
+                res.append((self.players[iPlayer].client.state, "end\n"))
         if callable(self.onTurnEnd):
             try:
                 self.onTurnEnd( )
