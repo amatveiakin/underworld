@@ -20,7 +20,7 @@ def bound(minVal, current, maxVal):
 
 class VisualizerWidget(QtGui.QWidget):
     PlayerColors = [ QtGui.QColor(255, 0, 0), QtGui.QColor(0, 0, 255),
-                     QtGui.QColor(0, 255, 0), QtGui.QColor(0, 0, 0) ]
+                     QtGui.QColor(0, 200, 0), QtGui.QColor(180, 160, 0) ]
     NeutralColor = QtGui.QColor(0, 0, 0)
     def __init__(self, parent, visualizer):
         super(VisualizerWidget, self).__init__(parent)
@@ -55,10 +55,10 @@ class VisualizerWidget(QtGui.QWidget):
             cellRect = QtCore.QRectF(o.x * cellSize, o.y * cellSize, cellSize, cellSize)
             textRect = copy.copy(cellRect)
             if isinstance(o, gameengine.Game.Building):
-                pen = QtGui.QPen(self.PlayerColors[o.owner])
+                pen = QtGui.QPen(mainColor)
                 pen.setWidth(1)
                 painter.setPen(pen)
-                fillColor = copy.copy(self.PlayerColors[o.owner])
+                fillColor = copy.copy(mainColor)
                 fillColor.setHsvF(fillColor.hueF(), fillColor.saturationF() * 0.5, fillColor.valueF(), 0.2)
                 painter.setBrush(fillColor)
                 buildingRect = cellRect.adjusted(0.5, 0.5, -0.5, -0.5)
@@ -76,7 +76,7 @@ class VisualizerWidget(QtGui.QWidget):
                 painter.setBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.green)))
                 painter.drawRect(hBarGreenRect)
                 textRect.setTop(hBarRect.bottom())
-            painter.setPen(self.PlayerColors[o.owner].darker(125))
+            painter.setPen(mainColor.darker(125))
             painter.drawText(textRect, QtCore.Qt.AlignCenter, o.CharRepr)
         painter.end()
     def wheelEvent(self, event):
