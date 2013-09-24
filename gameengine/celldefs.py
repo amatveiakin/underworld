@@ -58,6 +58,7 @@ class Wall(Building):
     def __init__(self, x, y, owner):
         assert(owner == -1)
         super().__init__(x, y, owner)
+        self.hitpoints = -1
     CharRepr = "#"
 
 ObjTypes = [Castle, Farm, Barracks, Warrior, Wall]

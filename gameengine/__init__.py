@@ -145,10 +145,7 @@ class Game:
         '''
             Returns a string representing info about a cell @(x, y)
         '''
-        if obj.TakesDamage:
-            return "%d %d %d %s %d" % (obj.x, obj.y, obj.owner, obj.CharRepr, obj.hitpoints)
-        else:
-            return "%d %d %d %s" % (obj.x, obj.y, obj.owner, obj.CharRepr)
+        return "%d %d %d %s %d" % (obj.x, obj.y, obj.owner, obj.CharRepr, obj.hitpoints)
     def _resolveIncome(self):
         for p in self.players:
             p.money += p.getIncome( )
