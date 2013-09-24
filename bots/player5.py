@@ -4,7 +4,6 @@ try:
     whoareyou = sys.stdin.readline()
     sys.stdout.write("crayfish\n")
     sys.stdout.flush( )
-    number = 0
     s = sys.stdin.readline( )
     words = s.split( )
     SizeX = int(words[0])
