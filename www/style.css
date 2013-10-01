@@ -1,0 +1,8 @@
+  input, textarea, select, button,label {
+  width : 150px;
+  margin: 10px;
+  clear:both;
+}
+ label {
+  float: left;
+}
