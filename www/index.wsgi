@@ -45,6 +45,8 @@ def simple_app(environ, start_response):
                     output.append('<p>Username or password is incorrect.</p>')
         else:
             session.invalidate( )
+            start_response('303 SEE OTHER', [('Content-type', 'text/html'), ('Location', '/')])
+            return []
 
     if 'logged_in' in session:
         output.append('<form method="post" action=index.wsgi>')
