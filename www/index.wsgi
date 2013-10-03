@@ -35,16 +35,18 @@ def simple_app(environ, start_response):
                 s = users.select( users.c.name==d['username'][0] )
                 users_found = s.execute( )
                 user = users_found.fetchone( )
-                if ( user and passwd_check(d['password'][0], user['passwd_hash']) ):
+                if ( user and user['passwd_hash'] and passwd_check(d['password'][0], user['passwd_hash']) ):
                     session['logged_in'] = True
+                    session.save( )
+                    start_response('303 SEE OTHER', [('Content-type', 'text/html'), ('Location', '/')])
+                    return []
                 else:
                     session.pop("logged_in", "")
-                    output.append("<p>Username or password is incorrect.</p>")
+                    output.append('<p>Username or password is incorrect.</p>')
         else:
             session.invalidate( )
 
     if 'logged_in' in session:
-        output.append(pformat("logged in"))
         output.append('<form method="post" action=index.wsgi>')
         output.append('<input type="hidden" name="is_login" value=False>')
         output.append('<input type="submit" value="Logout">')
@@ -58,6 +60,7 @@ def simple_app(environ, start_response):
         output.append('<input type="submit" value="Log in">')
         output.append('<input type="hidden" name="is_login" value="True">')
         output.append('</form>')
+    output.append('<a href=register.wsgi>Registration page</a>')
     session.save( )
 
 
