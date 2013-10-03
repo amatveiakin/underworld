@@ -60,7 +60,9 @@ def simple_app(environ, start_response):
         else:
             username = d['username'][0]
             username_regex = r"[A-Za-z0-9_\-]+$"
-            if not re.match(username_regex, username):
+            if len(username) > users.c.name.type.length:
+                output.append("<p>Username must not be longer than %d characters</p>" % users.c.name.type.length)
+            elif not re.match(username_regex, username):
                 output.append("<p>Bad characters in the username</p>")
             elif d['password'][0] != d['password_repeat'][0]:
                 output.append("<p>Passwords don't match.<p>")
