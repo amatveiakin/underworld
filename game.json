@@ -1,5 +1,8 @@
 {
-    "players": ["python3 bots/player5.py", "python3 bots/player5.py", "python3 bots/player5.py", "python3 bots/player5.py"],
+    "players": [{"exeName":"python3 bots/player5.py"}, 
+                {"exeName":"python3 bots/player5.py"}, 
+                {"exeName":"python3 bots/player5.py"}, 
+                {"exeName":"python3 bots/player5.py"}],
     "money": 3000,
     "sizex": 10,
     "sizey": 10,

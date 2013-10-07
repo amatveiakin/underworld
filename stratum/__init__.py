@@ -3,10 +3,22 @@ import threading
 
 #host = "10.0.2.1"
 host = "localhost"
-port = 6783
+port_data = 6783
+port_command = 6784
 
-bots = ["bot1.tar.gz", "bot2.tar.gz"]
-currentBot = 0
+class Bot:
+    addrMap = dict()
+    def __init__(self, playerId, tarfile, gameId=0):
+        self.playerId = playerId
+        self.tarfile = tarfile
+        self.gameId = gameId
+    def __repr__(self):
+        return "playerId = {0}, tarfile={1}".format(self.playerId, self.tarfile)
+    def setAddress(self, addr):
+        self.__cls__.addrMap[addr] = self
+        self.addr = addr
+    def fifoNames(self):
+        return [x.format(self.gameId, self.playerId) for x in ["/tmp/game_{0}_bot_{1}_to", "/tmp/game_{0}_bot_{1}_from"]]
 
 class Connection:
     def __init__(self, toClientFile, fromClientFile, socket, addr):
@@ -61,12 +73,26 @@ commands = """
     ./run < /tmp/fromServer > /tmp/toServer &
 """
 
-def onClientAccept(sock, addr):
-    if currentBot >= len(bots):
-       sock.send("poweroff".encode("utf-8"))
-    sock.send(commands.format(host=host, port=port, tarfile=bots[currentBot]).encode("utf-8"))
-    currentBot += 1
 
+def onClientAccept(sock, addr):
+    print("VM connected: {0}".format(addr))
+    if pendingBots:
+        print(" Assigning bot {0}".format(bot))
+        bot = pendingBots.pop( )
+        bot.setAddr(addr)
+        runningBots.append(bot)
+        sock.send(commands.format(host=host, port=port_data, tarfile=bot.tarfile).encode("utf-8"))
+        if not pendingBots:
+            startGame( runningBots)
+    else:
+        sock.send(b"poweroff\n")
+        print(" Unexpected VM connection!")
+
+def onPlayerAccepted(sock, addr):
+    bot = Bot.addrMap[addr]
+    fifos = bot.fifoNames( )
+    connection = Connection(fifos[0], fifos[1], sock, addr)
+    
 class Listener(asyncore.dispatcher):
     def __init__(self, host, port, onAccept):
         asyncore.dispatcher.__init__(self)
