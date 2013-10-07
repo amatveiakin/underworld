@@ -22,6 +22,9 @@ class Unbuffered:
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
+class IO:
+    pass
+
 
 class MutexLocker:
     ''' Simple mutex lock object '''
@@ -67,7 +70,7 @@ class Client:
                     self.onReady(self)
         self._state = value
 
-    def __init__(self, exeName, iPlayer, onReady=None):
+    def __init__(self, playerDesc, iPlayer, onReady=None):
         ''' Initialize a player 
                 Args:
                     exeName - the executable name ( should not spawn new processes )
@@ -75,7 +78,10 @@ class Client:
                     onReady - the callback which is called when the player is ready
                         onReady(player): player is a Client object
         '''
-        self.process = subprocess.Popen(exeName.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        self.process = subprocess.Popen(playerDesc["exeName"].split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        self.io = IO( )
+        self.io.stdin = self.process.stdin
+        self.io.stdout = self.process.stdout
         self.thread = threading.Thread(target=self.playerLoop)
         self.thread.setDaemon(True)
         self.lock = threading.RLock()
@@ -83,14 +89,14 @@ class Client:
         self._state = PlayerState.NOT_INITIATED
         self.startThinkingEvent = threading.Event( )
         self.iPlayer = iPlayer
-        self.process.stdin = Unbuffered(self.process.stdin)
+        self.io.stdin = Unbuffered(self.io.stdin)
         self.messageFromPlayer = b""
         self.receivedLinesNo = 0
         self.reason = ""
-        self.exeName = exeName
+        self.playerDesc = playerDesc
     def handshake(self):
         ''' Perform handshake. If it fails, kick the player '''
-        answer = self.process.stdout.readline().strip()
+        answer = self.io.stdout.readline().strip()
         with MutexLocker(self.lock):
             if answer != config.handshakeAck:
                 self.reason = "Handshake failed"
@@ -109,7 +115,7 @@ class Client:
                 if not PlayerState.inPlay(self.state):
                     break
                 self.startThinkingEvent.wait( )
-                receivedMessage = self.process.stdout.readline(config.maxRecvLineLen)
+                receivedMessage = self.io.stdout.readline(config.maxRecvLineLen)
                 with MutexLocker(self.lock):
                     if receivedMessage.strip() == b"end":
                         self.state = PlayerState.READY
@@ -154,7 +160,7 @@ def runGame(game, playerList):
     thinkingSet = set(playerList)
     for player in playerList:
         player.onReady = onClientStopThinking
-        player.process.stdin.write(config.handshakeSyn + b"\n")
+        player.io.stdin.write(config.handshakeSyn + b"\n")
         player.run()
 
     initialMessages = game.initialMessages()
@@ -166,7 +172,7 @@ def runGame(game, playerList):
                 if player.state == PlayerState.READY:
                     player.state = PlayerState.THINKING
                     thinkingSet.add(player)
-                    player.process.stdin.write(bytearray(message, "utf-8"))
+                    player.io.stdin.write(bytearray(message, "utf-8"))
                 else:
                     player.reason = "Handshake timeout"
                     player.state = PlayerState.KICKED
@@ -196,7 +202,7 @@ def runGame(game, playerList):
                     somebodyStillPlays |=  PlayerState.inPlay(player.state)
                     if player.state == PlayerState.THINKING:
                         thinkingSet.add(player)
-                        player.process.stdin.write(bytearray(reply[1], "utf-8"))
+                        player.io.stdin.write(bytearray(reply[1], "utf-8"))
             everyoneReadyEvent.clear( )
         if not somebodyStillPlays:
             print("Game over!")
@@ -209,11 +215,11 @@ def main():
     fGame.close( )
 
     playerList = []
-    playerNames = gameDesc["players"]
-    playerNum = len(playerNames)
+    playerDescs = gameDesc["players"]
+    playerNum = len(playerDescs)
 
-    for (playerExeFile, iPlayer) in zip(playerNames, range(playerNum)):
-        playerList.append(Client(playerExeFile, iPlayer))
+    for (playerDesc, iPlayer) in zip(playerDescs, range(playerNum)):
+        playerList.append(Client(playerDesc, iPlayer))
 
     game.setClients(playerList, gameDesc)
     plugin = None
