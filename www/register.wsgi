@@ -13,19 +13,15 @@ import re
 def gen_captcha( ):
     generator = captcha([text(fonts=['/usr/share/fonts/truetype/ttf-dejavu/DejaVuSansMono.ttf'],
               drawings = [warp(), rotate(15), offset( )]), smooth(), noise(number=100), curve(), curve( ) ])
-     
     answer = "".join( [random.choice(string.ascii_letters[:26]) for i in range(6)] )
     captcha_image = generator(answer)
     bytesIO = BytesIO()
-    captcha_image.save(bytesIO, 'JPEG')
+    captcha_image.save(bytesIO, 'jpeg')
     captcha_data = bytesIO.getvalue() 
     bytesIO.close( )
     return (answer, captcha_data)
 
 def simple_app(environ, start_response):
-    #if ( environ['REMOTE_ADDR'] != "89.249.165.187"):
-        #start_response('403 FORBIDDEN', [('Content-type', 'text/jpeg')])
-        #return []
     output = []
     # Get the session object from the environ
     session = environ['beaker.session']
@@ -35,7 +31,7 @@ def simple_app(environ, start_response):
             if not 'captcha_data' in session:
                 start_response('404 NOT FOUND', [('Content-type', 'plain/text')])
                 return ["Don't do this, please"]
-            start_response('200 OK', [('Content-type', 'image/png')])
+            start_response('200 OK', [('Content-type', 'image/jpeg')])
             session.pop("captcha_answer")
             return [session.pop("captcha_data")]
             

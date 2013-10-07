@@ -81,5 +81,5 @@ application = SessionMiddleware(simple_app, session_opts)
 def passwd_hash(password):
     return sha1((password + "pepper").encode("utf-8")).hexdigest( )
 def passwd_check(password, stored_hash):
-    return passwd_hash(password) == stored_hash.decode("utf-8")
+    return passwd_hash(password) == stored_hash
 
