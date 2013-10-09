@@ -114,8 +114,10 @@ class Game:
             try:
                 self.onTurnEnd( )
             except:
-                # kick everyone: the interactive UI is dead
-                res = [ (PlayerState.KICKED, "" ) ] * self.nPlayers
+                # the interactive UI is dead
+                print("The pluging died!")
+                self.onTurnEnd = None
+                # res = [ (PlayerState.KICKED, "" ) ] * self.nPlayers
         return res
 
     def initialMessages(self):
