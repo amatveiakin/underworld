@@ -7,7 +7,7 @@ class Player:
         self.money = money
         self._game = game
         self.iPlayer = client.iPlayer
-        self.name = os.path.basename(client.playerDesc["exeName"].split( )[-1])
+        self.name = client.playerDesc["name"]
     def getPlayerStats(self):
         return [("Money", self.money), ("Income", self.getIncome())]
     def getIncome(self):

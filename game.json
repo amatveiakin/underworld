@@ -1,8 +1,8 @@
 {
-    "players": [{"exeName":"python3 bots/player5.py"}, 
-                {"exeName":"python3 bots/player5.py"}, 
-                {"exeName":"python3 bots/player5.py"}, 
-                {"exeName":"python3 bots/player5.py"}],
+    "players": [{"exeName":"python3 bots/player5.py", "type" : "process", "name":"bot"}, 
+                {"exeName":"python3 bots/player5.py", "type" : "process", "name":"bot"}, 
+                {"exeName":"python3 bots/player5.py", "type" : "process", "name":"bot"}, 
+                {"exeName":"python3 bots/player5.py", "type" : "process", "name":"bot"}],
     "money": 3000,
     "sizex": 10,
     "sizey": 10,
