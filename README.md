@@ -38,3 +38,9 @@ Tests
             nc -l -p 5555 
             # in separate console
             python3 underworld.py -g game_tcp.json
+* game_unix.json - the same for UNIX sockets
+
+            # listen on a unix socket
+            socat - UNIX-LISTEN:sock
+            # in separate console
+            python3 underworld.py -g game_unix.json
