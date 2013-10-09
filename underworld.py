@@ -216,7 +216,7 @@ def runGame(game, playerList):
                     player.receivedLinesNo = 0
 
         engineReply = game.processTurn(playerMoves)
-        print("Let the turn ", game.turn, " end!")
+        #print("Let the turn ", game.turn, " end!")
         somebodyStillPlays = False
         with MutexLocker(thinkingSetLock):
             thinkingSet = set( )
