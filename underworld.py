@@ -8,6 +8,7 @@ import playerstate as PlayerState
 import json
 from options import parseOptions
 import importlib
+import io
 
 class Unbuffered:
     ''' Unbuffered output wrapper '''
@@ -23,7 +24,7 @@ class Unbuffered:
         return getattr(self.stream, attr)
 
 class IO:
-    pass
+    __slots__ = ["stdin", "stdout"]
 
 
 class MutexLocker:
@@ -60,7 +61,7 @@ class Client:
                 print("Player ", self.iPlayer + 1, " reaches his destiny: ", value)
                 if value == PlayerState.KICKED and self.reason:
                     print(" Reason: ", self.reason)
-            self.process.kill()
+                self.cleanup( )
         if value != self.state:
             if value == PlayerState.THINKING:
                 self.startThinkingEvent.set( )
@@ -78,10 +79,6 @@ class Client:
                     onReady - the callback which is called when the player is ready
                         onReady(player): player is a Client object
         '''
-        self.process = subprocess.Popen(playerDesc["exeName"].split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        self.io = IO( )
-        self.io.stdin = self.process.stdin
-        self.io.stdout = self.process.stdout
         self.thread = threading.Thread(target=self.playerLoop)
         self.thread.setDaemon(True)
         self.lock = threading.RLock()
@@ -89,11 +86,32 @@ class Client:
         self._state = PlayerState.NOT_INITIATED
         self.startThinkingEvent = threading.Event( )
         self.iPlayer = iPlayer
-        self.io.stdin = Unbuffered(self.io.stdin)
-        self.messageFromPlayer = b""
+        self.messageFromPlayer = ""
         self.receivedLinesNo = 0
         self.reason = ""
         self.playerDesc = playerDesc
+        self.initIO( )
+    def initIO(self):
+        self.io = IO( )
+        self.process = None
+        self.sock = None
+        if self.playerDesc["type"] == "process":
+            self.process = subprocess.Popen(self.playerDesc["exeName"].split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            self.io.stdin = io.TextIOWrapper(self.process.stdin)
+            self.io.stdout = io.TextIOWrapper(self.process.stdout)
+            self.io.stdin = Unbuffered(self.io.stdin)
+        elif self.playerDesc["type"] == "socket":
+            import socket
+            supprotedFamilies = { "inet": (socket.AF_INET, tuple),
+                                  "unix": (socket.AF_UNIX, lambda x: x) }
+            familyDesc = supprotedFamilies[self.playerDesc["family"]]
+            self.sock = socket.socket(familyDesc[0], socket.SOCK_STREAM)
+            self.sock.connect(familyDesc[1](self.playerDesc["addr"]))
+            self.io.stdin = Unbuffered(self.sock.makefile("w"))
+            self.io.stdout = self.sock.makefile("r")
+        else:
+            assert False, "Player type should be on of [process, socket]"
+            
     def handshake(self):
         ''' Perform handshake. If it fails, kick the player '''
         answer = self.io.stdout.readline().strip()
@@ -111,18 +129,17 @@ class Client:
         '''
         try:
             self.handshake()
-            while True:
+            while not self.io.stdout.closed:
                 if not PlayerState.inPlay(self.state):
                     break
                 self.startThinkingEvent.wait( )
                 receivedMessage = self.io.stdout.readline(config.maxRecvLineLen)
                 with MutexLocker(self.lock):
-                    if receivedMessage.strip() == b"end":
+                    if receivedMessage.strip() == "end":
                         self.state = PlayerState.READY
                     else:
                         if not self._isMessageSecure(receivedMessage):
-                            self.reason = "Spam protection"
-                            self.state = PlayerState.KICKED
+                            self.kick("Spam protection")
                             break
                         self.messageFromPlayer += receivedMessage
                         self.receivedLinesNo += 1
@@ -131,7 +148,7 @@ class Client:
     def _isMessageSecure(self, message):
         return self.receivedLinesNo < config.maxRecvLinesNo and \
             len(self.messageFromPlayer) + len(message) < config.maxRecvSize and \
-            message[-1:] == b"\n"
+            message[-1:] == "\n"
 
     def run(self):
         ''' Start player's IO '''
@@ -145,6 +162,11 @@ class Client:
     def __repr__(self):
         ''' String representation - just the player's id '''
         return str(self.iPlayer + 1)
+    def cleanup(self):
+        if self.process:
+            self.process.kill( )
+        if self.sock:
+            self.sock.close( )
 
 def runGame(game, playerList):
     thinkingSetLock = threading.RLock( )
@@ -160,7 +182,7 @@ def runGame(game, playerList):
     thinkingSet = set(playerList)
     for player in playerList:
         player.onReady = onClientStopThinking
-        player.io.stdin.write(config.handshakeSyn + b"\n")
+        player.io.stdin.write(config.handshakeSyn + "\n")
         player.run()
 
     initialMessages = game.initialMessages()
@@ -172,10 +194,9 @@ def runGame(game, playerList):
                 if player.state == PlayerState.READY:
                     player.state = PlayerState.THINKING
                     thinkingSet.add(player)
-                    player.io.stdin.write(bytearray(message, "utf-8"))
+                    player.io.stdin.write(message)
                 else:
-                    player.reason = "Handshake timeout"
-                    player.state = PlayerState.KICKED
+                    player.kick("Handshake timeout")
         everyoneReadyEvent.clear( )
 
     while True:
@@ -187,8 +208,8 @@ def runGame(game, playerList):
                     player.kick("Timeout")
                     playerMoves.append(None)
                 else:
-                    playerMoves.append(player.messageFromPlayer.decode("utf-8"))
-                    player.messageFromPlayer = b""
+                    playerMoves.append(player.messageFromPlayer)
+                    player.messageFromPlayer = ""
                     player.receivedLinesNo = 0
 
         engineReply = game.processTurn(playerMoves)
@@ -202,7 +223,7 @@ def runGame(game, playerList):
                     somebodyStillPlays |=  PlayerState.inPlay(player.state)
                     if player.state == PlayerState.THINKING:
                         thinkingSet.add(player)
-                        player.io.stdin.write(bytearray(reply[1], "utf-8"))
+                        player.io.stdin.write(reply[1])
             everyoneReadyEvent.clear( )
         if not somebodyStillPlays:
             print("Game over!")
