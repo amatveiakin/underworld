@@ -113,7 +113,7 @@ class Game:
         if callable(self.onTurnEnd):
             try:
                 self.onTurnEnd( )
-            except:
+            except Exception as e:
                 # the interactive UI is dead
                 print("The pluging died!")
                 self.onTurnEnd = None

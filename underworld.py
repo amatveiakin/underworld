@@ -18,7 +18,7 @@ class Unbuffered:
         try:
             self.stream.write(data)
             self.stream.flush()
-        except:
+        except Exception:
             pass
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
@@ -139,16 +139,18 @@ class Client:
                         self.state = PlayerState.READY
                     else:
                         if not self._isMessageSecure(receivedMessage):
+                            print(recievedMessage)
                             self.kick("Spam protection")
                             break
                         self.messageFromPlayer += receivedMessage
                         self.receivedLinesNo += 1
-        except:
+        except Exception:
             pass
+        self.kick("Disconnected")
     def _isMessageSecure(self, message):
         return self.receivedLinesNo < config.maxRecvLinesNo and \
             len(self.messageFromPlayer) + len(message) < config.maxRecvSize and \
-            message[-1:] == "\n"
+            ( message[-1:] == "\n" or not message )
 
     def run(self):
         ''' Start player's IO '''
@@ -157,7 +159,8 @@ class Client:
     def kick(self, reason="for nothing"):
         ''' Kick the player '''
         with MutexLocker(self.lock):
-            self.reason = reason
+            if self.state != PlayerState.KICKED:
+                self.reason = reason
             self.state = PlayerState.KICKED
     def __repr__(self):
         ''' String representation - just the player's id '''
@@ -244,18 +247,20 @@ def main():
 
     game.setClients(playerList, gameDesc)
     plugin = None
-    if options.plugin != "":
-        try:
+    try:
+        if options.plugin != "":
             pluginModule = importlib.import_module("plugins." + options.plugin)
             plugin = pluginModule.Plugin(game, options.plugin_args)
-        except:
-            for client in playerList:
-                clined.cleanup( )
-            raise
-    if hasattr(plugin, "__enter__"):
-        with plugin:
+        if hasattr(plugin, "__enter__"):
+            with plugin:
+                runGame(game, playerList)
+        else:
             runGame(game, playerList)
-    else:
-        runGame(game, playerList)
+    except:
+        # this should not happen in real life, but if you hit Ctrl+C, you get here
+        for player in playerList:
+            player.cleanup( )
+        print("Game stopped!")
+        raise
 if __name__ == "__main__":
     main()
