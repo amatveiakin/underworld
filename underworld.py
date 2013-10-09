@@ -250,7 +250,7 @@ def main():
             plugin = pluginModule.Plugin(game, options.plugin_args)
         except:
             for client in playerList:
-                client.process.kill( )
+                clined.cleanup( )
             raise
     if hasattr(plugin, "__enter__"):
         with plugin:
