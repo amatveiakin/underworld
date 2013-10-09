@@ -30,4 +30,11 @@ Usage examples
 
 Tests
 -----
-game.json - basic test for every feature
+* game.json - basic test for every feature
+* game_tcp.json - a test for tcp proto with manual play(you'll _probably_ want to
+  change the timeout to something > 1sec):
+
+            # a player has to be the server for the socket connection
+            nc -l -p 5555 
+            # in separate console
+            python3 underworld.py -g game_tcp.json
