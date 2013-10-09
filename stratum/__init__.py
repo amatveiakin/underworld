@@ -1,10 +1,50 @@
 import asyncore
+from socket import AF_INET, SOCK_STREAM, AF_UNIX
 import threading
+import os
 
-#host = "10.0.2.1"
-host = "localhost"
-port_data = 6783
-port_command = 6784
+host = "10.0.2.1"
+#host = "localhost"
+port_data = 6785
+port_command = 6786
+socket_name = "/tmp/underworld/game_{gameId}/{playerId}.sock"
+
+
+class BotHandler(asyncore.dispatcher):
+    def __init__(self, sock, bot):
+        asyncore.dispatcher.__init__(self, sock)
+        self.bot = bot
+        self.data = b''
+    def writable(self):
+        return bool(self.bot.underworldHandler and self.bot.underworldHandler.data)
+    def handle_read(self):
+        data = self.recv(1024)
+        self.data += data
+    def handle_write(self):
+        sentBytes = self.send(self.bot.underworldHandler.data)
+        self.bot.underworldHandler.data = self.bot.underworldHandler.data[sentBytes:]
+    def handle_error(self):
+        self.bot.disconnect( )
+    def handle_close(self):
+        self.bot.disconnect( )
+
+class UnderworldHandler(asyncore.dispatcher):
+    def __init__(self, sock, bot):
+        asyncore.dispatcher.__init__(self, sock)
+        self.bot = bot
+        self.data = b''
+    def writable(self):
+        return bool(self.bot.botHandler and self.bot.botHandler.data)
+    def handle_read( self):
+        data = self.recv(1024)
+        self.data += data
+    def handle_write( self):
+        sentBytes = self.send(self.bot.botHandler.data)
+        self.bot.botHandler.data = self.bot.botHandler.data[sentBytes:]
+    def handle_error(self):
+        self.bot.disconnect( )
+    def handle_close(self):
+        self.bot.disconnect( )
 
 class Bot:
     addrMap = dict()
@@ -12,103 +52,92 @@ class Bot:
         self.playerId = playerId
         self.tarfile = tarfile
         self.gameId = gameId
+        self.underworldHandler = None
+        self.botHandler = None
     def __repr__(self):
         return "playerId = {0}, tarfile={1}".format(self.playerId, self.tarfile)
-    def setAddress(self, addr):
-        self.__cls__.addrMap[addr] = self
+    def setAddr(self, addr):
+        self.__class__.addrMap[addr] = self
         self.addr = addr
-    def fifoNames(self):
-        return [x.format(self.gameId, self.playerId) for x in ["/tmp/game_{0}_bot_{1}_to", "/tmp/game_{0}_bot_{1}_from"]]
-
-class Connection:
-    def __init__(self, toClientFile, fromClientFile, socket, addr):
-        self.toClientFile = toClientFile
-        self.fromClientFile = fromClientFile
-        self.socket = socket
-        self.addr = addr
-        self.threadToClient = threading.Thread( self.toClientLoop)
-        self.threadToClient.setDaemon(True)
-        self.threadFromClient = threading.Thread( self.fromClientLoop)
-        self.threadFromClient.setDaemon(True)
-        self.threadToClient.start( ) 
-        self.threadFromClient.start( )
-
-    def toClientLoop(self):
-        try:
-            fd = open(self.toClientFile)
-            while True:
-                data = fd.readline( )
-                if data:
-                    self.socket.send(data)
-        except:
-        #FIXME
-            raise 
+    def getSocketName(self):
+        return socket_name.format(gameId=self.gameId, playerId=self.playerId)
+    def onUnderworldAccepted(self, sock, addr):
+        self.underworldHandler = UnderworldHandler(sock, self)
+    def disconnect(self):
+        if self.underworldHandler:
+            self.underworldHandler.close( )
+        if self.botHandler:
+            self.botHandler.close( )
+        print("Disconnected {0}".format(self))
         
-    def fromClientLoop(self):
-        try:
-            fd = open(self.fromClientFile, "w")
-            while True:
-                data = self.socket.recv(8192)
-                fd.write(data)
-                fd.flush( )
-        except:
-        #FIXME
-            raise
-
-
 commands = """
     cd /home/player/
     wget --output-document=bot.tar.gz http://{host}/data/{tarfile}
     chown player:player bot.tar.gz
-    mkfifo /tmp/toServer
-    mkfifo /tmp/fromServer
-    chmod 666 /tmp/toServer
-    chmod 666 /tmp/fromServer
-    nc {host} {port} < /tmp/toServer > /tmp/fromServer &
-    su player
-    mkdir bot
-    tar -xzf bot.tar.gz -C bot
-    cd bot
-    make &> ../make.log
-    ./run < /tmp/fromServer > /tmp/toServer &
+    rm -f /var/tmp/toServer
+    mkfifo /var/tmp/toServer
+    chmod 666 /var/tmp/toServer
+    su player -c "rm -rf bot; tar -xzf bot.tar.gz; cd bot; make &> ../make.log"
+    nc {host} {port} < /var/tmp/toServer | su player -c "cd bot; ./run > /var/tmp/toServer" &
 """
 
+class ScreenHandler(asyncore.dispatcher):
+    def handle_read(self):
+        print(self.recv(1024))
 
-def onClientAccept(sock, addr):
+def onClientAccepted(sock, addr):
     print("VM connected: {0}".format(addr))
     if pendingBots:
-        print(" Assigning bot {0}".format(bot))
         bot = pendingBots.pop( )
-        bot.setAddr(addr)
-        runningBots.append(bot)
-        sock.send(commands.format(host=host, port=port_data, tarfile=bot.tarfile).encode("utf-8"))
-        if not pendingBots:
-            startGame( runningBots)
+        print(" Assigning bot {0}".format(bot))
+        bot.setAddr(addr[0])
+        connectingBots.add(bot)
+        ScreenHandler(sock)
+        sock.sendall(commands.format(host=host, port=port_data, tarfile=bot.tarfile).encode("utf-8"))
     else:
         sock.send(b"poweroff\n")
         print(" Unexpected VM connection!")
 
+def runGame(bots):
+    os.system("cd ..; python3 underworld.py -g stratum/game.json&")
+
 def onPlayerAccepted(sock, addr):
-    bot = Bot.addrMap[addr]
-    fifos = bot.fifoNames( )
-    connection = Connection(fifos[0], fifos[1], sock, addr)
-    
+    bot = Bot.addrMap[addr[0]]
+    print("Player connected: {0}".format(bot))
+    bot.socket = sock
+    os.system("rm " + bot.getSocketName( ))
+    underworldConnectionListener = Listener(bot.getSocketName( ), 
+        bot.onUnderworldAccepted, AF_UNIX)
+    bot.botHandler = BotHandler(sock, bot)
+    connectingBots.discard(bot)
+    runningBots.add(bot)
+    if not connectingBots:
+        runGame(runningBots)
+
 class Listener(asyncore.dispatcher):
-    def __init__(self, host, port, onAccept):
+    def __init__(self, hostAddr, onAccept, family=AF_INET):
         asyncore.dispatcher.__init__(self)
-        self.create_socket( )
+        self.create_socket(family, SOCK_STREAM)
         self.set_reuse_addr( )
-        self.bind((host, port))
-        self.listen(5)
+        self.bind(hostAddr)
+        self.listen(1)
         self.onAccept = onAccept
     def handle_accepted(self, sock, addr):
-        handler = self.onAccept(sock, addr)
+        self.onAccept(sock, addr)
 
-
+pendingBots = [Bot(0, "bot.tar.gz", 1)]
+connectingBots = set( )
+runningBots = set( )
 def main( ):
-    helloListener = Listener(host, port, onClientAccept)
-    mainListener = Listener(host, port + 1, onPlayerAccepted)
-    asyncore.loop( )
+    try:
+        mainListener = Listener((host, port_data), onPlayerAccepted)
+        helloListener = Listener((host, port_command), onClientAccepted)
+        os.system("./launchvm &")
+        print ("VM launched!")
+        asyncore.loop( )
+    except:
+        asyncore.close_all( )
+        raise
 
 if __name__=="__main__":
     main( )

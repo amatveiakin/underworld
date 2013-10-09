@@ -11,7 +11,7 @@ try:
     nPlayers = int(words[2])
     iPlayer = int(words[3])
 
-    while True:
+    while not sys.stdin.closed:
         s = sys.stdin.readline( )
         while s != "end\n":
             words = s.split( )

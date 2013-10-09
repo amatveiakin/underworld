@@ -1,4 +1,4 @@
-turnDurationInSec = 1000
+turnDurationInSec = 1
 handshakeSyn = "Who are you?"
 handshakeAck = "crayfish"
 maxRecvLineLen = 1024 # at most bytes on each line
