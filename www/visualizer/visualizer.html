@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Underworld view</title>
+
+<script src="jquery.js"></script>
+
+<script type="text/javascript">
+  var iTurn = 0
+  var replayData
+  function onReplayLoaded( data ) {
+    replayData = data;
+    setInterval( redraw, 100 );
+  }
+
+  function init( ) {
+    $.get( "replay.json", onReplayLoaded, "json" );
+  }
+
+  function redraw( ) {
+    iTurn++;
+    neutralColor = "#000000";
+    playerColors = ["#ff0000", "#00b000", "#0000ff", "#807000"];
+    var cellSize = 20;
+    var canvas = document.getElementById( "gameCanvas" );
+    var ctx = canvas.getContext( "2d" );
+    canvas.width = canvas.width;  // clear canvas
+    ctx.font = cellSize + "px Arial";
+    var objects = replayData.turns[iTurn].objects;
+    for (var i = 0; i < objects.length; i++) {
+      ctx.fillStyle = (objects[i].owner < 0) ? neutralColor : playerColors[objects[i].owner]
+      ctx.fillText( objects[i].type, objects[i].x * cellSize, (objects[i].y + 1) * cellSize );
+    }
+  }
+</script>
+
+</head>
+
+
+<body onload="init( );">
+
+<canvas id="gameCanvas" width="800" height="600" style="border:1px solid #d3d3d3;">
+  Your browser is damn old.
+</canvas>
+
+</body>
+</html>
