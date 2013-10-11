@@ -26,8 +26,8 @@ class Plugin:
     def _onTurnEnd(self):
         d = {
             "turn": self._game.turn,
-            "money": [p.money for p in self._game.clients],
-            "state": [str(p.state) for p in self._game.clients],
+            "money": [p.money for p in self._game.players],
+            "state": [str(p.client.state) for p in self._game.players],
             "objects": list(map(Plugin._getObjectDict, self._game.objects))
         }
         json.dump(d, self.outputFile)
