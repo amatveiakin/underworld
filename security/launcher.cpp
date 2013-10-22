@@ -8,8 +8,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <cstring>
 #include <string>
 #include <vector>
+#include <iostream>
 
 int uidSecure(int uid)
 {
@@ -20,57 +22,54 @@ int uidSecure(int uid)
 
 int main(int argc, char **argv)
 {
-    char *tok[MAX_CMD_ARGS];
-    char buf[BUF_LEN], buf2[BUF_LEN], buf3[BUF_LEN];
-    char *newEnv[] = { buf2, buf3, NULL };
-    const char * homedir = "/home/";
-    int i = 0, j = 4;
+    const int nMyArgs = 4;
+    const int firstNewArg = nMyArgs;
 
-    if ( argc < 5 )
+    if ( argc < nMyArgs + 1 )
     {
-        fprintf(stderr, "Usage: launcher <uid> <rootdir> <playerName> <executable> [options>]");
+        std::cerr << "Usage: launcher <uid> <rootdir> <playerName> <executable> [<options>]\n";
         return -1;
     }
     
-    while ( i < MAX_CMD_ARGS - 1 && j < argc )
-    {
-        tok[ i++ ] = argv[ j++ ];
-    }
-    tok[ i ] = NULL;
+    std::vector<char *> newArgs(argc - firstNewArg);
+    std::copy(argv + firstNewArg, argv + argc, newArgs.begin());
+    newArgs.push_back(nullptr);
 
     if ( chroot(argv[2]) )
     {
-        fprintf(stderr, "Can not chroot to %s\n", argv[2]);
+        std::cerr << "Can not chroot to " << argv[2] << "\n";
         return -1;
     }
 
-    strncpy(buf, homedir, BUF_LEN - 1);
-    strncat(buf, argv[3], BUF_LEN - strlen(homedir) - 1);
-    snprintf(buf2, BUF_LEN, "HOME=%s", buf);
-    buf2[BUF_LEN - 1] = '\0';
-    snprintf(buf3, BUF_LEN, "LD_PRELOAD=/filter.so");
-    buf3[BUF_LEN - 1] = '\0';
-    if ( chdir(buf) )
+    std::string homeDir = std::string("/home/") + argv[3];
+    if ( chdir(homeDir.c_str()) )
     {
-        fprintf(stderr, "Can't chdir to %s\n", buf);
+        std::cerr << "Can't chdir to " << homeDir << "\n";
         return -1;
     }
 
     int newUid = atoi(argv[1]);
     if ( !uidSecure(newUid) )
     {
-        fprintf(stderr, "Uid is not secure: %d\n", newUid);
+        std::cerr << "Uid is not secure: " << newUid << "\n";
         return -1;
     }
     if ( setuid(newUid) )
     {
-        fprintf(stderr, "Can't setuid to %d\n", newUid);
+        std::cerr << "Can't setuid to " << newUid << "\n";
         return -1;
     }
     
-    if ( execve(tok[0], tok, newEnv) )
+    std::string newHome = "HOME=" + homeDir;
+    std::string newLdPreload = "LD_PRELOAD=/filter.so";
+    char newHomeBuf[newHome.length() + 1];
+    char newLdPreloadBuf[newLdPreload.length() + 1];
+    std::strcpy (newHomeBuf, newHome.c_str());
+    std::strcpy (newLdPreloadBuf, newLdPreload.c_str());
+    std::vector<char *> newEnv({ newHomeBuf, newLdPreloadBuf });
+    if ( execvpe(newArgs[0], newArgs.data(), newEnv.data() ) )
     {
-        fprintf(stderr, "Couldn't evec %s\n", argv[4]);
+        std::cerr << "Couldn't evec " << argv[4] << "\n";
         return -1;
     }
     return 0;
