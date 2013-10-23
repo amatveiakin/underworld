@@ -1,0 +1,2 @@
+#!/bin/bash
+sudo setcap cap_setuid,cap_sys_chroot+ep launcher
