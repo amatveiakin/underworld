@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Underworld view</title>
 
-<script src="jquery.js"></script>
+<script src="/jquery.js"></script>
 
 <script type="text/javascript">
   var iTurn = 0
@@ -15,7 +15,7 @@
   }
 
   function init( ) {
-    $.get( "replay.json", onReplayLoaded, "json" );
+    $.get( "/replays/replay.json", onReplayLoaded, "json" );
   }
 
   function redraw( ) {
