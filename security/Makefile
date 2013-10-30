@@ -9,6 +9,10 @@ filter.so: filter.o syscall-reporter.o
 	ld -shared $^ -o $@ -soname $@ -init init_filter
 
 launcher: launcher.o
+	g++ launcher.o -o launcher
+
+launcher.o: launcher.cpp
+	g++ -c -o launcher.o launcher.cpp -std=c++11
 
 .PHONY: clean
 clean:
