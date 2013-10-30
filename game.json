@@ -1,8 +1,8 @@
 {
-    "players": [{"exeName":"python3 bots/player5.py", "type" : "process", "name":"bot"}, 
-                {"exeName":"python3 bots/player5.py", "type" : "process", "name":"bot"}, 
-                {"exeName":"python3 bots/player5.py", "type" : "process", "name":"bot"}, 
-                {"exeName":"python3 bots/player5.py", "type" : "process", "name":"bot"}],
+    "players": [{"exeName":"python3 bots/player5.py", "type" : "process", "name":"bot", "trusted":false}, 
+                {"exeName":"python3 bots/player5.py", "type" : "process", "name":"bot", "trusted":false}, 
+                {"exeName":"python3 bots/player5.py", "type" : "process", "name":"bot", "trusted":false}, 
+                {"exeName":"python3 bots/player5.py", "type" : "process", "name":"bot", "trusted":false}],
     "money": 3000,
     "sizex": 10,
     "sizey": 10,
@@ -17,5 +17,6 @@
                 {"x": 4, "y": 4, "type": "#", "owner": -1},
                 {"x": 4, "y": 5, "type": "#", "owner": -1},
                 {"x": 5, "y": 5, "type": "#", "owner": -1},
-                {"x": 5, "y": 4, "type": "#", "owner": -1} ]
+                {"x": 5, "y": 4, "type": "#", "owner": -1} ],
+    "maxTurns" : 10
 }

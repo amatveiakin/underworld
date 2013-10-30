@@ -35,6 +35,10 @@ class Game:
         self.nPlayers = len(clients)
         self.players = [ Game.Player(c, self, gameDesc["money"]) for c in clients ]
         self.turn = 0
+        if "maxTurns" in gameDesc:
+            self.maxTurns = gameDesc["maxTurns"]
+        else:
+            self.maxTurns = 1000
         self.objects = set( )
         self.SizeX = gameDesc["sizex"]
         self.SizeY = gameDesc["sizey"]
@@ -163,6 +167,9 @@ class Game:
                 newStates[iPlayer] = PlayerState.LOST
         if len(alivePlayers) == 1:
             newStates[alivePlayers.pop( )] = PlayerState.WON
+        else:
+            if self.turn >= self.maxTurns:
+                newStates = [PlayerState.KICKED] * self.nPlayers;
         return newStates
 
     def _cleanup(self):
