@@ -8,6 +8,7 @@ AI challenge contest hosting system
 Requirements
 ------------
 * pyqt4 for python3
+* libtclap-dev argument parsing lib for security launcher
 
 
 Usage examples
