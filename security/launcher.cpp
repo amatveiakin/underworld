@@ -32,9 +32,11 @@ public:
     int GetUid() { return m_uid; }
     int GetFsizeLimit() { return m_fsizeLimit; }
     std::string GetSandboxDir() { return m_sandboxDir; }
+    std::string GetBotDir() { return m_botDir; }
 protected:
     std::string m_sandboxDir;
     std::string m_botName;
+    std::string m_botDir;
     int m_memLimit;
     int m_uid;
     int m_fsizeLimit;
@@ -49,13 +51,15 @@ bool OptionParser::Parse( int argc, char **argv )
         TCLAP::ValueArg<int> uidArg("u","user-id","Execute as user with uid=UID", 
                                 false, 1005, "UID");
         TCLAP::ValueArg<int> memLimitArg("m", "mem-limit", "Limit memory to BYTES bytes", 
-                                false, 10000000, "MEM");
+                                false, 64000000, "MEM");
         TCLAP::ValueArg<std::string> sandboxDirArg("s", "sandbox-dir", "Chroot to DIR", 
                                 false, "sandbox", "DIR");
-        TCLAP::ValueArg<std::string> botNameArg("n", "botName", "Use /home/NAME dir for the bot",
-                                true, "", "NAME");
+        TCLAP::ValueArg<std::string> botNameArg("n", "botName", "The bot name. Ignored",
+                                false, "foo", "NAME");
         TCLAP::ValueArg<int> fsizeLimitArg("", "fsize-limit", "Set filesize limit to BYTES",
                                 false, 1000000, "BYTES");
+        TCLAP::ValueArg<std::string> botDirArg("d", "bot-dir", "Chdir to DIR in the sandbox",
+                                true, "", "DIR");
         TCLAP::UnlabeledMultiArg<std::string> cmdArg("cmd", "command to run", false, "CMD");
 
         cmd.add(uidArg);
@@ -63,6 +67,7 @@ bool OptionParser::Parse( int argc, char **argv )
         cmd.add(sandboxDirArg);
         cmd.add(botNameArg);
         cmd.add(fsizeLimitArg);
+        cmd.add(botDirArg);
         cmd.add(cmdArg);
 
         cmd.parse(argc,argv);
@@ -73,6 +78,7 @@ bool OptionParser::Parse( int argc, char **argv )
         m_execCmd = cmdArg.getValue();
         m_memLimit = memLimitArg.getValue();
         m_fsizeLimit = fsizeLimitArg.getValue();
+        m_botDir = botDirArg.getValue();
     } 
     catch (TCLAP::ArgException &e)  // catch any exceptions
     { 
@@ -100,7 +106,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    std::string homeDir = std::string("/home/") + options.GetBotName();
+    std::string homeDir = options.GetBotDir();
     if ( chdir(homeDir.c_str()) )
     {
         std::cerr << "Can't chdir to " << homeDir << std::endl;
