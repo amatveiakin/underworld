@@ -96,7 +96,8 @@ class Client:
         self.process = None
         self.sock = None
         if self.playerDesc["type"] == "process":
-            self.process = subprocess.Popen(self.playerDesc["exeName"].split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            self.process = subprocess.Popen(self.playerDesc["exeName"].split(), 
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE)
             self.io.stdin = io.TextIOWrapper(self.process.stdin)
             self.io.stdout = io.TextIOWrapper(self.process.stdout)
             self.io.stdin = Unbuffered(self.io.stdin)
@@ -110,7 +111,7 @@ class Client:
             self.io.stdin = Unbuffered(self.sock.makefile("w"))
             self.io.stdout = self.sock.makefile("r")
         else:
-            assert False, "Player type should be on of [process, socket]"
+            assert False, "Player type should be one of [process, socket]"
             
     def handshake(self):
         ''' Perform handshake. If it fails, kick the player '''
