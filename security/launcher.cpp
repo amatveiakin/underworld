@@ -129,6 +129,7 @@ int main(int argc, char **argv)
     if ( fork( ) )
     {
         int status;
+        prctl(PR_SET_PDEATHSIG, SIGTERM);
         signal(SIGTERM, term_handler);
         pause();
         setuid(newUid);
