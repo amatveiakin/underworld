@@ -1,3 +1,0 @@
-#!/bin/bash
-VM_DIR=~/vm
-qemu -enable-kvm -drive if=virtio,file=$VM_DIR/root.img -drive if=virtio,file=$VM_DIR/home.img -drive if=virtio,file=$VM_DIR/var_clean.img -boot c -net nic,model=virtio -net vde -m 128
