@@ -19,6 +19,6 @@ clean:
 	rm -f filter filter.o syscall-reporter.o syscall-names.h launcher launcher.o
 
 .PHONY: install
-install:
+install: all
 	./setcap
 	cp filter.so sandbox/
