@@ -12,4 +12,7 @@ def parseOptions():
     parser.add_argument("-P", "--plugin-args",
                         help="Arguments passed to the plugin",
                         default="")
+    parser.add_argument("-r", "--results",
+                        help="Results filename",
+                        default="")
     return parser.parse_args( )

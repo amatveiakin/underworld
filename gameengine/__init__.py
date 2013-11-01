@@ -121,8 +121,12 @@ class Game:
                 # the interactive UI is dead
                 print("The pluging died!")
                 self.onTurnEnd = None
-                # res = [ (PlayerState.KICKED, "" ) ] * self.nPlayers
         return res
+    def saveResults(self, filename):
+        #just dump the survivors
+        import json
+        f = open(filename, "w")
+        json.dump({"survivors": list({ o.owner for o in self.objects if o.owner >= 0})}, f)
 
     def initialMessages(self):
         '''

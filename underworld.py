@@ -172,7 +172,7 @@ class Client:
         if self.sock:
             self.sock.close( )
 
-def runGame(game, playerList):
+def runGame(game, playerList, options):
     thinkingSetLock = threading.RLock( )
     thinkingSet = set( )
     everyoneReadyEvent = threading.Event( )
@@ -223,14 +223,16 @@ def runGame(game, playerList):
             thinkingSet = set( )
             for (player, reply) in zip(playerList, engineReply):
                 with MutexLocker(player.lock):
-                    player.state = reply[0]
-                    somebodyStillPlays |=  PlayerState.inPlay(player.state)
-                    if player.state == PlayerState.THINKING:
-                        thinkingSet.add(player)
-                        player.io.stdin.write(reply[1])
+                    if not PlayerState.isFinal(player.state):
+                        player.state = reply[0]
+                        somebodyStillPlays |=  PlayerState.inPlay(player.state)
+                        if player.state == PlayerState.THINKING:
+                            thinkingSet.add(player)
+                            player.io.stdin.write(reply[1])
             everyoneReadyEvent.clear( )
         if not somebodyStillPlays:
-            print("Game over!")
+            if options.results:
+                game.saveResults(options.results)
             return
 def main():
     game = gameengine.Game()
@@ -254,11 +256,11 @@ def main():
             plugin = pluginModule.Plugin(game, options.plugin_args)
         if hasattr(plugin, "__enter__"):
             with plugin:
-                runGame(game, playerList)
+                runGame(game, playerList, options)
         else:
-            runGame(game, playerList)
+            runGame(game, playerList, options)
     except:
-        # this should not happen in real life, but if you hit Ctrl+C, you get here
+        # this should not happen in real life, but if you hit Ctrl+C, you probably get here
         for player in playerList:
             player.cleanup( )
         print("Game stopped!")
