@@ -20,5 +20,5 @@ clean:
 
 .PHONY: install
 install:
-	sudo setcap cap_setuid,cap_sys_chroot+ep launcher
+	./setcap
 	cp filter.so sandbox/
