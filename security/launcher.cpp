@@ -14,6 +14,8 @@
 #include <iostream>
 #include <tclap/CmdLine.h>
 #include <sys/resource.h>
+#include <sys/prctl.h>
+#include <sys/wait.h>
 
 int uidSecure(int uid)
 {
@@ -88,6 +90,10 @@ bool OptionParser::Parse( int argc, char **argv )
     return true;
 }
 
+void term_handler( int signum)
+{
+}
+
 int main(int argc, char **argv)
 {
     OptionParser options;
@@ -120,34 +126,46 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if ( setuid(newUid) )
+    if ( fork( ) )
     {
-        std::cerr << "Can't setuid to " << newUid << std::endl;
-        return -1;
+        int status;
+        signal(SIGTERM, term_handler);
+        pause();
+        setuid(newUid);
+        return 0;
     }
-
-    struct rlimit myRlimit;
-
-    myRlimit.rlim_cur = myRlimit.rlim_max = options.GetFsizeLimit();
-    setrlimit(RLIMIT_FSIZE, &myRlimit);
-
-    myRlimit.rlim_cur = myRlimit.rlim_max = options.GetMemoryLimit();
-    setrlimit(RLIMIT_AS, &myRlimit);
-
-    myRlimit.rlim_cur = myRlimit.rlim_max = 5;
-    setrlimit(RLIMIT_NOFILE, &myRlimit);
-
-    std::string newHome = "HOME=" + homeDir;
-    std::string newLdPreload = "LD_PRELOAD=/filter.so";
-    char newHomeBuf[newHome.length() + 1];
-    char newLdPreloadBuf[newLdPreload.length() + 1];
-    std::strcpy (newHomeBuf, newHome.c_str());
-    std::strcpy (newLdPreloadBuf, newLdPreload.c_str());
-    std::vector<char *> newEnv({ newHomeBuf, newLdPreloadBuf, nullptr });
-    if ( execvpe(newArgs[0], newArgs.data(), newEnv.data() ) )
+    else
     {
-        std::cerr << "Couldn't evec " << newArgs[0] << "\n";
-        return -1;
+        if ( setuid(newUid) )
+        {
+            std::cerr << "Can't setuid to " << newUid << std::endl;
+            return -1;
+        }
+
+        prctl(PR_SET_PDEATHSIG, SIGKILL);
+        struct rlimit myRlimit;
+
+        myRlimit.rlim_cur = myRlimit.rlim_max = options.GetFsizeLimit();
+        setrlimit(RLIMIT_FSIZE, &myRlimit);
+
+        myRlimit.rlim_cur = myRlimit.rlim_max = options.GetMemoryLimit();
+        setrlimit(RLIMIT_AS, &myRlimit);
+
+        myRlimit.rlim_cur = myRlimit.rlim_max = 5;
+        setrlimit(RLIMIT_NOFILE, &myRlimit);
+
+        std::string newHome = "HOME=" + homeDir;
+        std::string newLdPreload = "LD_PRELOAD=/filter.so";
+        char newHomeBuf[newHome.length() + 1];
+        char newLdPreloadBuf[newLdPreload.length() + 1];
+        std::strcpy (newHomeBuf, newHome.c_str());
+        std::strcpy (newLdPreloadBuf, newLdPreload.c_str());
+        std::vector<char *> newEnv({ newHomeBuf, newLdPreloadBuf, nullptr });
+        if ( execvpe(newArgs[0], newArgs.data(), newEnv.data() ) )
+        {
+            std::cerr << "Couldn't evec " << newArgs[0] << "\n";
+            return -1;
+        }
+        return 0;
     }
-    return 0;
 }

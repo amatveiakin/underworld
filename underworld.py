@@ -96,8 +96,13 @@ class Client:
         self.process = None
         self.sock = None
         if self.playerDesc["type"] == "process":
+            stderrDesc = None
+            try:
+                stderrDesc = open(self.playerDesc["stderr"], "wt");
+            except Exception:
+                pass
             self.process = subprocess.Popen(self.playerDesc["exeName"].split(), 
-                stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE,stderr=stderrDesc)
             self.io.stdin = io.TextIOWrapper(self.process.stdin)
             self.io.stdout = io.TextIOWrapper(self.process.stdout)
             self.io.stdin = Unbuffered(self.io.stdin)
@@ -168,7 +173,7 @@ class Client:
         return str(self.iPlayer + 1)
     def cleanup(self):
         if self.process:
-            self.process.kill( )
+            self.process.terminate( )
         if self.sock:
             self.sock.close( )
 
