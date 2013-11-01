@@ -69,6 +69,7 @@ static int install_syscall_filter(void)
         ALLOW_SYSCALL(fcntl64),
         ALLOW_SYSCALL(uname),
         ALLOW_SYSCALL(getppid),
+        ALLOW_SYSCALL(_newselect),
 
 		/* Add more syscalls here. */
 		KILL_PROCESS,
