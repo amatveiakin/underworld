@@ -50,7 +50,7 @@ def simple_app(environ, start_response):
     if environ['REQUEST_METHOD'] == 'POST':
         d = parse_qs(environ['wsgi.input'].read().decode('utf-8'))
         #output.append(pformat(d))  
-        if not 'username' in d or not 'password' in d or not 'password_repeat' or \
+        if not 'username' in d or not 'password' in d or not 'password_repeat' in d or \
            not 'captcha_answer_user' in d:
             output.append("<p>All fields are required.</p>")
         else:
