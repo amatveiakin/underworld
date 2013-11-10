@@ -1,8 +1,32 @@
-  input, textarea, select, button,label {
+  input, textarea, select, button, label {
   width : 150px;
-  margin: 10px;
+  margin: 3px;
   clear:both;
 }
  label {
   float: left;
+}
+div.fileinputs {
+        position: relative;
+        width: 300px;
+    }
+
+div.fakefile {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    z-index: 1;
+}
+
+div.fakefile input[type=button] {
+    /* enough width to completely overlap the real hidden file control */
+    cursor: pointer;
+}
+
+div.fileinputs input.file {
+    position: relative;
+    -moz-opacity:0 ;
+    filter:alpha(opacity: 0);
+    opacity: 0;
+    z-index: 2;
 }
