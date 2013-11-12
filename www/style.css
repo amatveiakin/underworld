@@ -30,3 +30,18 @@ div.fileinputs input.file {
     opacity: 0;
     z-index: 2;
 }
+table, th, td
+{
+border: 1px solid black;
+border-collapse: collapse;
+text-align:center;
+}
+td
+{
+padding-left: 15px;
+padding-right: 15px;
+}
+input[type=checkbox]
+{
+width:auto;
+}
