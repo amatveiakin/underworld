@@ -156,12 +156,15 @@ def simple_app(environ, start_response):
             where(bots.c.owner == session['user']['id'] )
         db_result = selectRequest.execute().fetchall()
         values = getValues(db_result)
-        keys = getKeys(db_result)
-        for i in values:
-            i.append('<input type="checkbox" name=select{0}/>'.format(i[0]))
-        keys.append("select")
-        output.append('<h2>Your bots</h2>')
-        output += htmlTable(getKeys(db_result), values)
+        if values:
+            keys = getKeys(db_result)
+            for i in values:
+                i.append('<input type="checkbox" name=select{0}/>'.format(i[0]))
+            keys.append("select")
+            output.append('<h2>Your bots</h2>')
+            output += htmlTable(getKeys(db_result), values)
+        else:
+            output.append("<p>You have no uploaded bots!</p>")
     else:
         output += login_form
     output.append('<p><a href=register.wsgi>Registration page</a></p>')
