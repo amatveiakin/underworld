@@ -8,10 +8,11 @@
 #   + 0th turn
 
 #  turn:
-#   x(int) y(int) owner(int) object(object) [hitpoints(int)]
+#   "money"(str without quotes) money(int)
+#   x(int) y(int) owner(int) object(object) hitpoints(int)
 #   ...
-#   x(int) y(int) owner(int) object(object) [hitpoints(int)]
-#   end
+#   x(int) y(int) owner(int) object(object) hitpoints(int)
+#  end
 
 # Client -> server protocol:
 #  move  x(int) y(int) dir(dir)
@@ -147,7 +148,7 @@ class Game:
             in the format below:
                 x y owner type hitpoints
         '''
-        msg = []
+        msg = ["money {0}".format(self.players[ iPlayer ].money)]
         for obj in self.objects:
             msg.append(self._compose_cell_info(obj))
         return "\n".join(msg) + ("\n" if msg else "")
@@ -163,7 +164,7 @@ class Game:
     def _checkWinConditions(self):
         alivePlayers = set( )
         for obj in self.objects:
-            if obj.owner >= 0:
+            if obj.owner >= 0 and isinstance(obj, Game.Castle):
                 alivePlayers.add(obj.owner)
         newStates = [None] * self.nPlayers
         for iPlayer in range(self.nPlayers):
