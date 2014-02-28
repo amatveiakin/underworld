@@ -5,7 +5,7 @@ to represent their author's programming skills. The rules defined by the current
 
 #Formal definition
 
-## Players and grid. Objects on grid
+## Players and grid. Objects on the grid.
 
 The game is played by at least 2 players controlled by computer programs. Each player has an in-game number from `0` to `nPlayers-1` where `nPlayers` is
 the number of players in the game.
@@ -70,8 +70,15 @@ And there is only one way to win - make all other players lose.
 # Client-server communication
 A player program uses standard input and output streams to communicate with the server.
 
-## Handshake
+## Handshake and initialization
 When the game starts, the server sends a standard handshake phrase "Who are you?" on a single line. The program should reply with "crayfish".
+After that the server sends initial data in the form of
+
+~~~
+    SizeX(int) SizeY(int) nPlayers(int) iPlayer(int)
+~~~
+where `SizeX` and `SizeY` represent the size of the battlefield `nPlayers` is the total number of players participating in the game
+and `iPlayer` is the number of player you are playing for.
 
 ## Server's messages
 Each turn starts with the following message from the server:
